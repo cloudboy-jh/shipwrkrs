@@ -18,6 +18,7 @@ type MockStore = {
 
 const MOCK_FLAG = 'shipwrkrs_ui_mock';
 const MOCK_DB = 'shipwrkrs_ui_mock_db';
+const MOCK_UNLIMITED = 9999;
 
 function getMockStore(): MockStore {
   const raw = localStorage.getItem(MOCK_DB);
@@ -87,9 +88,9 @@ async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (path === '/api/limits') {
     return {
-      generationsFreeRemaining: store.limits.free,
-      generationsPremiumRemaining: store.limits.premium,
-      deploysRemaining: store.limits.deploy,
+      generationsFreeRemaining: MOCK_UNLIMITED,
+      generationsPremiumRemaining: MOCK_UNLIMITED,
+      deploysRemaining: MOCK_UNLIMITED,
     } as T;
   }
 
@@ -97,18 +98,10 @@ async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
     const tier = String(body.tier || 'free') === 'premium' ? 'premium' : 'free';
     const description = String(body.description || '').trim();
     if (!description) throw new Error('description is required');
-    if (tier === 'free') {
-      if (store.limits.free <= 0) throw new Error('Free generation limit hit for today');
-      store.limits.free -= 1;
-    } else {
-      if (store.limits.premium <= 0) throw new Error('Premium generation limit hit for today');
-      store.limits.premium -= 1;
-    }
-    setMockStore(store);
     return {
       code: mockCode(description),
       model: tier === 'premium' ? 'mock-anthropic' : 'mock-workers-ai',
-      remaining: tier === 'premium' ? store.limits.premium : store.limits.free,
+      remaining: MOCK_UNLIMITED,
     } as T;
   }
 
@@ -116,8 +109,6 @@ async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
     const scriptName = String(body.scriptName || 'mock-worker');
     const code = String(body.code || '');
     if (!code.trim()) throw new Error('code is required');
-    if (store.limits.deploy <= 0) throw new Error('Deploy limit hit for today');
-    store.limits.deploy -= 1;
     const url = `https://${scriptName}.mock-subdomain.workers.dev`;
     store.history.unshift({
       id: Date.now(),
@@ -128,7 +119,7 @@ async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
       createdAt: new Date().toISOString(),
     });
     setMockStore(store);
-    return { url, scriptName, remaining: store.limits.deploy } as T;
+    return { url, scriptName, remaining: MOCK_UNLIMITED } as T;
   }
 
   if (path === '/api/history') {

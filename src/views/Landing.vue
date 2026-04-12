@@ -1,59 +1,65 @@
 <template>
-  <section class="stack landing-wrap">
-    <UiCard class="stack">
-      <div class="logo-wrap">
-        <img :src="logoSrc" alt="shipwrkrs logo" class="hero-logo" />
+  <div class="page-center">
+    <div class="page-content">
+      <div class="hero">
+        <h1>Deploy <em>Workers</em> in seconds</h1>
       </div>
 
-      <h1 class="page-title">Deploy Cloudflare Workers in seconds.</h1>
-      <p class="muted">Describe what you want. AI writes it. One click deploy.</p>
-
-      <UiButton variant="primary" size="lg" @click="loginWithCloudflare">
-        Sign in with Cloudflare
-      </UiButton>
-      <p class="tiny">Free • No API keys • Your account, your Workers</p>
-
-      <UiSeparator />
-
-      <UiButton variant="ghost" @click="enterMock">Run full mock mode</UiButton>
-
-      <UiButton v-if="!oauthEnabled" variant="ghost" @click="tokenDialogOpen = true">
-        OAuth unavailable? Set token once
-      </UiButton>
-    </UiCard>
-
-    <UiDialog :open="tokenDialogOpen" @update:open="tokenDialogOpen = $event">
-      <div class="stack">
-        <h2 class="section-title">Token fallback</h2>
-        <p class="muted">OAuth unavailable in this env. Set key once.</p>
-        <UiInput v-model="accountId" placeholder="Cloudflare Account ID (optional)" />
-        <UiTextarea
-          v-model="apiToken"
-          placeholder="Cloudflare API token with Workers Scripts:Edit + Account:Read"
+      <button class="btn-primary full signin-btn" @click="loginWithCloudflare">
+        <img
+          class="signin-icon"
+          src="https://cdn.simpleicons.org/cloudflare/ffffff"
+          alt=""
+          aria-hidden="true"
         />
-        <UiButton :disabled="saving" @click="saveToken">
-          {{ saving ? 'Saving token...' : 'Set token once' }}
-        </UiButton>
-        <UiAlert variant="error" v-if="errorText">{{ errorText }}</UiAlert>
+        <span>Sign in with Cloudflare</span>
+      </button>
+      <p class="meta-line">Free · No API keys · Your account</p>
+
+      <button class="btn-ghost full" @click="enterMock">Run full mock mode</button>
+
+      <button v-if="!oauthEnabled" class="btn-ghost full" @click="tokenDialogOpen = true">
+        OAuth unavailable? Set token once
+      </button>
+
+      <p class="error-text" v-if="errorText && !tokenDialogOpen">{{ errorText }}</p>
+    </div>
+  </div>
+
+  <UiDialog :open="tokenDialogOpen" @update:open="tokenDialogOpen = $event">
+    <div class="prompt-block dialog-block">
+      <div class="prompt-inner">
+        <div class="dialog-head">
+          <h2>Token fallback</h2>
+          <p>OAuth unavailable in this env. Set key once.</p>
+        </div>
+        <div class="field-stack">
+          <input v-model="accountId" class="mono-input" placeholder="Cloudflare Account ID (optional)" />
+          <textarea
+            v-model="apiToken"
+            class="prompt-textarea"
+            placeholder="Cloudflare API token with Workers Scripts:Edit + Account:Read"
+          />
+        </div>
+        <p class="error-text left" v-if="errorText">{{ errorText }}</p>
       </div>
-    </UiDialog>
-  </section>
+      <div class="toolbar">
+        <button class="btn-ghost" @click="tokenDialogOpen = false">Cancel</button>
+        <button class="btn-primary" :disabled="saving" @click="saveToken">
+          {{ saving ? 'Saving token...' : 'Set token once' }}
+        </button>
+      </div>
+    </div>
+  </UiDialog>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import logoSrc from '../shipwrkrs-logomain (1).png';
+import UiDialog from '../components/ui/Dialog.vue';
+import { useSonner } from '../components/ui/sonner';
 import { enableUiMockMode } from '../composables/api';
 import { useAuth } from '../composables/useAuth';
-import UiAlert from '../components/ui/Alert.vue';
-import UiButton from '../components/ui/Button.vue';
-import UiCard from '../components/ui/Card.vue';
-import UiDialog from '../components/ui/Dialog.vue';
-import UiInput from '../components/ui/Input.vue';
-import UiSeparator from '../components/ui/Separator.vue';
-import UiTextarea from '../components/ui/Textarea.vue';
-import { useSonner } from '../components/ui/sonner';
 
 const apiToken = ref('');
 const accountId = ref('');
@@ -103,19 +109,179 @@ async function enterMock() {
 </script>
 
 <style scoped>
-.landing-wrap {
+
+.page-content {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.hero h1 {
+  font-family: var(--sans);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--tx);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--o);
+}
+
+.full {
   width: 100%;
 }
 
-.logo-wrap {
-  display: flex;
-  justify-content: center;
+.btn-primary {
+  height: 44px;
+  padding: 0 28px;
+  background: var(--o);
+  color: var(--color-primary-foreground, #000);
+  border: none;
+  border-radius: 10px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 160ms ease;
+  box-shadow: 0 0 0 1px var(--og), 0 4px 16px var(--og);
 }
 
-.hero-logo {
-  width: 48px;
-  height: 48px;
+.btn-primary:hover {
+  background: var(--od);
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px var(--og), 0 8px 24px var(--og);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.signin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.signin-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+
+.meta-line {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tm);
+}
+
+.dialog-block {
+  border: none;
+  border-radius: 0;
+}
+
+.prompt-inner {
+  padding: 20px;
+}
+
+.dialog-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.dialog-head h2 {
+  font-family: var(--sans);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.dialog-head p {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tm);
+}
+
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mono-input {
+  width: 100%;
+  height: 40px;
+  background: var(--el);
+  border: 1px solid var(--bd);
   border-radius: 10px;
-  object-fit: cover;
+  color: var(--tx);
+  padding: 0 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+}
+
+.prompt-textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--el);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  color: var(--tx);
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+}
+
+.mono-input::placeholder,
+.prompt-textarea::placeholder {
+  color: var(--tm);
+}
+
+
+
+.error-text {
+  text-align: center;
+  color: var(--er);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.error-text.left {
+  text-align: left;
+}
+
+@media (max-width: 600px) {
+  .hero h1 {
+    font-size: 28px;
+  }
+
+  .toolbar {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
 }
 </style>

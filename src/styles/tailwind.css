@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  /* dark (default) */
+  --color-background: hsl(240 10% 4%);
+  --color-foreground: hsl(240 5% 93%);
+  --color-primary: hsl(21 94% 49%);
+  --color-primary-foreground: hsl(0 0% 0%);
+  --color-secondary: hsl(240 4% 11%);
+  --color-secondary-foreground: hsl(240 5% 93%);
+  --color-muted: hsl(240 4% 11%);
+  --color-muted-foreground: hsl(240 4% 56%);
+  --color-accent: hsl(240 4% 16%);
+  --color-accent-foreground: hsl(240 5% 93%);
+  --color-destructive: hsl(0 63% 71%);
+  --color-destructive-foreground: hsl(0 0% 0%);
+  --color-border: hsl(240 4% 14%);
+  --color-input: hsl(240 4% 14%);
+  --color-ring: hsl(21 94% 49%);
+  --color-card: hsl(240 10% 5%);
+  --color-card-foreground: hsl(240 5% 93%);
+  --color-popover: hsl(240 10% 5%);
+  --color-popover-foreground: hsl(240 5% 93%);
+  --radius: 0.625rem;
+}
+
+/* light theme overrides */
+[data-theme="light"] {
+  --color-background: hsl(0 0% 97%);
+  --color-foreground: hsl(240 10% 7%);
+  --color-primary: hsl(21 94% 49%);
+  --color-primary-foreground: hsl(0 0% 0%);
+  --color-secondary: hsl(240 5% 92%);
+  --color-secondary-foreground: hsl(240 10% 7%);
+  --color-muted: hsl(240 5% 92%);
+  --color-muted-foreground: hsl(240 4% 40%);
+  --color-accent: hsl(240 5% 88%);
+  --color-accent-foreground: hsl(240 10% 7%);
+  --color-destructive: hsl(0 72% 51%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(240 5% 84%);
+  --color-input: hsl(240 5% 84%);
+  --color-ring: hsl(21 94% 49%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(240 10% 7%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(240 10% 7%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    font-family: inherit;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}

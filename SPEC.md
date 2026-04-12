@@ -2,394 +2,363 @@
 
 > Describe what you want. AI writes the Worker. One click deploy.
 
-**Last updated:** April 8, 2026
+**Last updated:** April 10, 2026
 
 ---
 
 ## What it is
 
-A fast, lightweight web UI for deploying Cloudflare Workers without touching wrangler, a terminal, or the Cloudflare dashboard. Users describe what they want in plain English, AI generates the Worker code, they review it, and deploy — all from the browser. Responsive enough to work on mobile, but designed for desktop-first usage.
-
-## Why it exists
-
-Deploying a Cloudflare Worker today requires: installing wrangler, writing a `wrangler.toml`, running CLI commands, or fighting the Cloudflare dashboard UI. For a platform that sells itself on simplicity, the deploy experience is anything but.
-
-shipwrkrs makes the simplest possible path from idea to live Worker.
+A fast web UI for deploying Cloudflare Workers without wrangler, a terminal, or the Cloudflare dashboard. Users describe what they want in plain English, AI generates the Worker code, they review it, and deploy — all from the browser.
 
 ---
 
-## Architecture
+## Stack
 
-### Stack
-
-- **Frontend:** Vue 3 + Vite + Bun
-- **Hosting:** Cloudflare Pages (frontend) + Cloudflare Workers (API routes)
-- **Auth:** Cloudflare OAuth 2.0 (users already need a CF account to deploy)
-- **AI — Free tier:** Cloudflare Workers AI (`@cf/qwen/qwen2.5-coder-32b-instruct` for code gen)
-- **AI — Premium:** Anthropic API (Claude Sonnet) via server-side Worker — user never touches an API key
-- **State:** Cloudflare D1 (user sessions, deploy history, rate limit counters)
-- **Editor:** CodeMirror 6 (mobile-friendly, lightweight, JS/TS syntax highlighting)
-- **Deploy mechanism:** Cloudflare REST API (`PUT /accounts/{account_id}/workers/scripts/{script_name}`)
-
-### System diagram
-
-```
-┌─────────────────────────────────────────────┐
-│              shipwrkrs.dev                   │
-│          (Cloudflare Pages — Vue 3)          │
-└─────────────┬───────────────────────────────┘
-              │
-              ▼
-┌─────────────────────────────────────────────┐
-│         API Worker (Cloudflare Workers)       │
-│                                              │
-│  /api/auth/*        Cloudflare OAuth flow    │
-│  /api/generate      AI code generation       │
-│  /api/deploy        Deploy to user's account │
-│  /api/history       Deploy history (D1)      │
-│  /api/limits        Rate limit status        │
-└──────┬──────────┬───────────┬───────────────┘
-       │          │           │
-       ▼          ▼           ▼
-   ┌───────┐  ┌────────┐  ┌──────────────────┐
-   │  D1   │  │Workers │  │ Cloudflare API   │
-   │       │  │  AI    │  │ (deploy to       │
-   │Users  │  │  +     │  │  user's account) │
-   │Limits │  │Anthropic│  │                  │
-   │History│  │        │  │                  │
-   └───────┘  └────────┘  └──────────────────┘
-```
-
-### Auth flow
-
-1. User taps "Sign in with Cloudflare"
-2. Redirect to Cloudflare OAuth consent screen
-3. User grants `workers:write` + `account:read` scopes
-4. Callback returns access token
-5. Token stored in encrypted httpOnly cookie (session-based)
-6. All subsequent API calls use this token to deploy to the user's own account
-
-No API keys. No tokens to paste. One OAuth flow and they're in.
-
-### AI code generation
-
-Two tiers, same UX. User never knows which model is running unless they look.
-
-**Free tier — Workers AI:**
-- Model: `@cf/qwen/qwen2.5-coder-32b-instruct` (or best available code model)
-- Called directly from the API Worker via `env.AI.run()`
-- Zero additional cost — included in Workers free plan
-- Rate limit: 10 generations/day per user
-
-**Premium tier — Anthropic:**
-- Model: Claude Sonnet (latest)
-- Called server-side from API Worker — Anthropic API key is a Worker secret
-- User never sees or provides an API key
-- Jack pays the Anthropic bill (rate-limited to control costs)
-- Rate limit: 5 generations/day per user (premium)
-
-**System prompt for code gen:**
-
-```
-You are a Cloudflare Worker code generator.
-
-Given a user's description, generate a complete, deployable Cloudflare Worker.
-
-Rules:
-- Output ONLY the Worker code, no explanation
-- Use ES modules format (export default { async fetch(request, env, ctx) { ... } })
-- Handle CORS if the worker serves an API
-- Include appropriate error handling
-- Use Web Standards APIs (fetch, Request, Response, URL, Headers)
-- If the user mentions KV, R2, D1, or other bindings, include them but note they need manual setup
-- Keep it minimal — no unnecessary dependencies
-- Add a brief comment at the top describing what the worker does
-```
-
-### Deploy flow
-
-1. Frontend sends generated code + user's desired script name to `/api/deploy`
-2. API Worker uses the user's OAuth token to call:
-   ```
-   PUT https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/scripts/{script_name}
-   Content-Type: application/javascript
-   
-   {worker code}
-   ```
-3. On success, return the live URL: `https://{script_name}.{subdomain}.workers.dev`
-4. Log deploy to D1 history table
-
-### Rate limits
-
-Stored in D1, keyed by Cloudflare user ID. Reset daily at 00:00 UTC.
-
-| Action | Free limit |
-|--------|-----------|
-| AI generations (Workers AI) | 10/day |
-| AI generations (Anthropic) | 5/day |
-| Deploys | 20/day |
-
-Rate limit status shown in the UI footer. No paid tier for now — revisit if there's demand.
+| Layer | Technology |
+|---|---|
+| Frontend | Vue 3 + Vite + Bun |
+| Hosting | Cloudflare Pages (frontend) + Cloudflare Workers (API) |
+| Auth | Cloudflare OAuth 2.0 |
+| AI (free) | Cloudflare Workers AI — `@cf/qwen/qwen2.5-coder-32b-instruct` |
+| AI (premium) | Anthropic Claude Sonnet — server-side, user never touches a key |
+| State | Cloudflare D1 — sessions, deploy history, rate limit counters |
+| Editor | CodeMirror 6 — JS/TS syntax highlighting, oneDark theme |
+| UI primitives | shadcn-vue (real CLI-installed components) |
+| Tailwind | Tailwind CSS v4 via `@tailwindcss/vite` |
+| Icons | lucide-vue-next |
+| Path alias | `@` → `src/` (configured in vite.config.ts + tsconfig) |
 
 ---
 
-## Design / Theme / Coloring
+## Design system
 
-### Vibe
+### Fonts
 
-Cloudflare-inspired. Orange energy on dark. Feels native to the Cloudflare ecosystem without pretending to be an official product. Clean, fast, mobile-first. Developer tool energy but accessible enough that someone who's never used wrangler can figure it out.
+- **Headings / UI labels:** `'DM Sans', sans-serif` — weight 700 or 800 only
+- **Code / mono / metadata:** `'IBM Plex Mono', monospace` — weight 500, 600, or 700 only
+- **Rule: minimum font weight is 500 everywhere. No thin text.**
 
-### Color system
+Loaded in `index.html`:
+```html
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=DM+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+```
+
+### CSS variables (`src/styles/global.css`)
 
 ```css
 :root {
-  /* Backgrounds */
-  --bg-primary:    #0a0a0a;       /* App background */
-  --bg-surface:    #111111;       /* Cards, panels */
-  --bg-elevated:   #1a1a1a;       /* Editor, input fields */
-  --bg-hover:      #222222;       /* Hover states */
-  
-  /* Cloudflare orange */
-  --cf-orange:     #f6821f;       /* Primary action, accents */
-  --cf-orange-dim: #d4700f;       /* Hover state on orange */
-  --cf-orange-glow: rgba(246, 130, 31, 0.15); /* Subtle glow */
-  
-  /* Text */
-  --text-primary:  #e8e8e8;       /* Primary text */
-  --text-secondary:#8b8b8b;       /* Labels, hints */
-  --text-muted:    #555555;       /* Disabled, placeholders */
-  
-  /* Borders */
-  --border:        #252525;       /* Default borders */
-  --border-focus:  #f6821f;       /* Focused inputs */
-  
-  /* Status */
-  --success:       #34d399;       /* Deploy success */
-  --error:         #f87171;       /* Errors */
-  --warning:       #fbbf24;       /* Warnings */
-  
-  /* Editor */
-  --editor-bg:     #0d0d0d;       /* Code editor background */
-  --editor-gutter: #1a1a1a;       /* Line numbers */
-  --editor-line:   #141414;       /* Active line highlight */
+  --o:   #f25706;                    /* primary orange */
+  --od:  #d94d05;                    /* orange hover/dark */
+  --og:  rgba(242, 87, 6, 0.18);     /* orange glow */
+  --bg:  #09090b;                    /* app background */
+  --sf:  #0f1012;                    /* surface (cards, panels) */
+  --el:  #18191c;                    /* elevated (inputs, rows) */
+  --tx:  #ececef;                    /* primary text */
+  --t2:  #9a9ba3;                    /* secondary text */
+  --tm:  #56575e;                    /* muted text */
+  --bd:  #222328;                    /* borders */
+  --gn:  #34d399;                    /* success green */
+  --er:  #f87171;                    /* error red */
+  --topbar-h: 68px;                  /* fixed header height */
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
 }
 ```
 
-### Spacing & Layout
+Light theme is applied via `[data-theme="light"]` on `<html>`. Tokens in `src/styles/tailwind.css` map to shadcn-vue's expected color names.
 
-Desktop-first, responsive down to mobile. Core flow maxes out at 720px centered. Editor can stretch wider on large screens (up to 960px). Standard tap targets for mobile compatibility but the primary experience is mouse + keyboard.
+### Tailwind CSS variables (`src/styles/tailwind.css`)
 
+Tailwind v4 `@theme` block maps project tokens to shadcn-expected names:
+
+```
+--color-primary        → #f25706 (orange)
+--color-background     → #09090b
+--color-foreground     → #ececef
+--color-muted          → --el equivalent
+--color-border         → --bd equivalent
+--color-secondary      → --el equivalent
+--color-accent         → slightly lighter than --el for hover
+```
+
+Light theme lives in `[data-theme="light"]` block.
+
+---
+
+## UI component rules
+
+### shadcn-vue components (installed via CLI)
+
+Use these — do not hand-roll alternatives:
+
+| Component | Import path |
+|---|---|
+| Button | `@/components/ui/button` |
+| Badge | `@/components/ui/badge` |
+| Tabs / TabsList / TabsTrigger / TabsContent | `@/components/ui/tabs` |
+| ScrollArea | `@/components/ui/scroll-area` |
+| Separator | `@/components/ui/separator` |
+
+All shadcn components are overridden to use project design tokens via Tailwind arbitrary value syntax in the CVA strings — never raw CSS class appending.
+
+### Custom UI patterns (not shadcn — used in scoped styles)
+
+**Prompt block** — dark surface container with orange glow line:
 ```css
-:root {
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
-  
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  
-  --content-width: 720px;   /* core flow max width */
-  --editor-width: 960px;    /* editor can go wider */
+.prompt-block {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+.prompt-block::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--o), transparent);
+  opacity: 0.4;
 }
 ```
 
-### Component style
-
-- Buttons: Solid `--cf-orange` fill for primary, ghost/outline for secondary. No gradients. Subtle `box-shadow` with orange glow on primary CTA.
-- Cards: `--bg-surface` with `1px solid --border`. No shadow. Slight border-radius.
-- Inputs: `--bg-elevated` with `--border`, focus ring in `--cf-orange`.
-- Editor: Near-black `--editor-bg`, distinct from app background. Minimal chrome around it.
-- Status badges: Pill-shaped, color-coded (success/error/warning), small and unobtrusive.
-
----
-
-## Typography
-
-### Font stack
-
-Not using the personal brutalist system. This is a Cloudflare-adjacent product — it should feel like developer tooling, clean and legible.
-
-**Display / Headings:** `"Geist Sans"` (Vercel's open-source font — clean, geometric, excellent at display sizes, widely used in dev tooling). Fallback: `"SF Pro Display", -apple-system, sans-serif`.
-
-**Body / UI:** `"Geist Sans"` at lighter weights. One font family keeps it cohesive and reduces load time on mobile.
-
-**Code / Editor:** `"Geist Mono"` — monospaced companion to Geist Sans. Excellent for code. Fallback: `"SF Mono", "Fira Code", "Cascadia Code", monospace`.
-
-### Type scale
-
+**Toolbar** — bottom bar inside a block:
 ```css
-:root {
-  --text-xs:   12px;   /* Badges, fine print */
-  --text-sm:   14px;   /* Labels, secondary text */
-  --text-base: 16px;   /* Body text (mobile readable) */
-  --text-lg:   18px;   /* Section headers */
-  --text-xl:   22px;   /* Page titles */
-  --text-2xl:  28px;   /* Hero text */
-  
-  --weight-normal: 400;
-  --weight-medium: 500;
-  --weight-bold:   700;
-  
-  --leading-tight: 1.2;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.7;
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid var(--bd);
+  background: rgba(255,255,255,0.01);
 }
 ```
 
-### Loading
+**Primary button** (scoped, used in views that don't use shadcn Button):
+```css
+.btn-primary {
+  height: 40px; padding: 0 28px;
+  background: var(--o); color: #000;
+  border: none; border-radius: 10px;
+  font-family: var(--sans); font-size: 14px; font-weight: 700;
+  box-shadow: 0 0 0 1px var(--og), 0 4px 16px var(--og);
+}
+```
 
-Fonts loaded via `<link rel="preload">` from Google Fonts CDN. Geist is available on Google Fonts. Critical: use `font-display: swap` so the page is usable immediately on slow mobile connections.
+**Ghost button:**
+```css
+.btn-ghost {
+  height: 40px; padding: 0 20px;
+  background: transparent; color: var(--t2);
+  border: 1px solid var(--bd); border-radius: 10px;
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+}
+```
 
----
+**Page layout wrappers:**
+```css
+.page-center {
+  min-height: calc(100vh - var(--topbar-h));
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
 
-## User Journey (E2E)
+.page-top {
+  min-height: calc(100vh - var(--topbar-h));
+  display: flex; justify-content: center;
+  padding: 80px 24px 48px;
+}
+```
 
-### Screen 1: Landing / Sign in
+### Button variants (shadcn Button overrides)
 
-**What the user sees:**
+| Variant | Style |
+|---|---|
+| `default` | Orange bg, black text, DM Sans 700, `rounded-[10px]`, orange glow shadow |
+| `outline` | Transparent, `border-border`, muted text, accent hover |
+| `secondary` | `bg-secondary`, `border-border` |
+| `ghost` | Transparent, no border, muted text, accent hover |
 
-- shipwrkrs wordmark top-left
-- One-liner: "Deploy Cloudflare Workers in seconds."
-- Subtext: "Describe what you want. AI writes it. One click deploy."
-- Single CTA button: **"Sign in with Cloudflare"** (orange, full-width on mobile)
-- Below: small text — "Free • No API keys • Your account, your Workers"
+### Tabs overrides
 
-**What happens:**
-
-- Tap sign in → redirect to Cloudflare OAuth consent
-- User approves `workers:write` + `account:read` scopes
-- Redirect back to shipwrkrs → session cookie set → proceed to Screen 2
-
-### Screen 2: Describe (the core screen)
-
-**What the user sees:**
-
-- Header: account indicator (Cloudflare email/name) + remaining generations badge
-- Large text input (textarea, 4-5 lines visible, auto-expanding): placeholder "Describe your Worker..."
-- Example prompts below the input (tappable, fill the textarea):
-  - "A JSON API that returns a random quote"
-  - "Redirect old URLs to new ones from a mapping"
-  - "A proxy that adds CORS headers to any API"
-  - "Return the current time in any timezone"
-- Below examples: toggle for AI tier — "⚡ Fast (free)" vs "✨ Premium"
-- CTA button: **"Generate Worker"** (orange, full-width)
-
-**What happens:**
-
-- User types or taps an example
-- Tap Generate → loading spinner with "Writing your Worker..."
-- API call to `/api/generate` with description + selected tier
-- On success → transition to Screen 3
-
-### Screen 3: Review + Deploy
-
-**What the user sees:**
-
-- Worker name input at top (auto-generated from description, editable): e.g. `random-quote-api`
-- CodeMirror editor showing the generated code (JS syntax highlighting, dark theme matching app)
-- Editor is editable — user can tweak if they want
-- Below editor: the deploy target preview — `https://random-quote-api.{subdomain}.workers.dev`
-- Two buttons:
-  - **"Deploy"** (orange, primary)  
-  - "Regenerate" (ghost/outline, secondary)
-- Footer: deploy count remaining today
-
-**What happens:**
-
-- User reviews code, optionally edits
-- Tap Deploy → loading state "Deploying..."
-- API call to `/api/deploy` with code + script name + user's OAuth token
-- On success → transition to Screen 4
-
-### Screen 4: Success
-
-**What the user sees:**
-
-- Check icon (green `--success`)
-- "Your Worker is live!"
-- Live URL displayed as a tappable link: `https://random-quote-api.{subdomain}.workers.dev`
-- "Copy URL" button
-- "Test it" button (opens the URL in a new tab)
-- "Deploy another" button (returns to Screen 2)
-
-**What happens:**
-
-- Deploy logged to D1 history
-- User can copy URL, test it, or start over
-
-### Screen 5: History (accessible from header menu)
-
-**What the user sees:**
-
-- List of previous deploys: script name, date, status (live/deleted), URL
-- Tap any deploy to see the code that was deployed
-- No delete/manage — that's what the CF dashboard is for
+- `TabsList` — `bg-[var(--el)]`, `border-[var(--bd)]`, `rounded-xl`
+- `TabsTrigger` — inactive: `text-[var(--t2)]`, IBM Plex Mono; active: `bg-[var(--o)]`, black text, bold
 
 ---
 
-## Project structure
+## App structure
 
 ```
 shipwrkrs/
 ├── src/
-│   ├── App.vue
-│   ├── main.ts
-│   ├── router.ts
+│   ├── App.vue                      # Shell: header + RouterView + sonner
+│   ├── main.ts                      # App init, imports global.css + tailwind.css
+│   ├── router.ts                    # All routes with meta.width
+│   ├── env.d.ts
+│   ├── shipwrkrs-logomain (1).png   # Logo asset
 │   ├── views/
-│   │   ├── Landing.vue          # Screen 1
-│   │   ├── Describe.vue         # Screen 2
-│   │   ├── Review.vue           # Screen 3
-│   │   ├── Success.vue          # Screen 4
-│   │   └── History.vue          # Screen 5
+│   │   ├── Landing.vue              # Sign in + mock mode
+│   │   ├── Describe.vue             # Prompt input + generate
+│   │   ├── Processing.vue           # AI thinking state (between Describe → Review)
+│   │   ├── Review.vue               # Code editor + deploy + step log
+│   │   ├── Success.vue              # Worker live confirmation
+│   │   ├── History.vue              # Deploy history feed
+│   │   └── Examples.vue            # Worker example catalog (tabs + feed list)
 │   ├── components/
-│   │   ├── CodeEditor.vue       # CodeMirror 6 wrapper
-│   │   ├── Header.vue
-│   │   ├── GenerationBadge.vue
-│   │   └── ExamplePrompts.vue
+│   │   ├── Header.vue               # Fixed topbar: logo, nav, theme toggle, avatar
+│   │   ├── CodeEditor.vue           # CodeMirror 6 wrapper (do not modify)
+│   │   ├── DeployStepLog.vue        # Stepped deploy progress component
+│   │   └── ui/
+│   │       ├── button/              # shadcn Button (overridden variants)
+│   │       ├── badge/               # shadcn Badge
+│   │       ├── tabs/                # shadcn Tabs (overridden active state)
+│   │       ├── scroll-area/         # shadcn ScrollArea
+│   │       ├── separator/           # shadcn Separator
+│   │       ├── Dialog.vue           # Custom dialog (used for stats + token fallback)
+│   │       ├── Sonner.vue           # Toast renderer
+│   │       └── sonner.ts            # Toast state composable
 │   ├── composables/
-│   │   ├── useAuth.ts           # OAuth state management
-│   │   ├── useGenerate.ts       # AI generation calls
-│   │   └── useDeploy.ts         # Deploy calls
+│   │   ├── api.ts                   # Fetch wrapper + full mock mode implementation
+│   │   ├── useAuth.ts               # Auth state, OAuth, token save, logout
+│   │   ├── useGenerate.ts           # AI generation API call
+│   │   ├── useDeploy.ts             # Deploy API call
+│   │   ├── useFlowState.ts          # Shared state: description, code, scriptName, deployedUrl
+│   │   └── useMeta.ts               # Rate limit/stats fetch
+│   ├── lib/
+│   │   └── utils.ts                 # cn() helper (clsx + tailwind-merge)
 │   └── styles/
-│       └── global.css           # CSS variables, base styles
-├── functions/                   # Cloudflare Pages Functions (Workers)
+│       ├── global.css               # CSS variables, base styles, dialog/toast styles
+│       └── tailwind.css             # Tailwind v4 @theme + light theme override
+├── functions/                       # Cloudflare Pages Functions (do not modify)
 │   └── api/
-│       ├── auth/
-│       │   ├── login.ts         # Initiate OAuth
-│       │   └── callback.ts      # OAuth callback
-│       ├── generate.ts          # AI code generation
-│       ├── deploy.ts            # Deploy to user's account
-│       ├── history.ts           # Deploy history (D1)
-│       └── limits.ts            # Rate limit status
-├── wrangler.toml
-├── package.json
+│       ├── auth/login.js
+│       ├── auth/callback.js
+│       ├── auth/me.js
+│       ├── auth/logout.js
+│       ├── auth/token.js
+│       ├── generate.js + generate.ts
+│       ├── deploy.js + deploy.ts
+│       ├── history.js + history.ts
+│       └── limits.js + limits.ts
+├── migrations/                      # D1 schema (do not modify)
+├── components.json                  # shadcn-vue CLI config
+├── opencode.md                      # Agent rules
+├── SPEC.md                          # This file
+├── index.html
 ├── vite.config.ts
-└── tsconfig.json
+├── tsconfig.json
+├── tsconfig.app.json
+├── wrangler.toml
+└── package.json
 ```
 
 ---
 
-## Build order
+## Routes
 
-1. **Auth flow** — Cloudflare OAuth login/callback, session management
-2. **Generate endpoint** — Workers AI code generation with system prompt
-3. **Describe view** — textarea + example prompts + generate button
-4. **Review view** — CodeMirror editor + deploy button
-5. **Deploy endpoint** — Cloudflare API deploy + success view
-6. **Rate limiting** — D1 counters, generation badge
-7. **History** — D1 logging, history view
-8. **Anthropic tier** — premium generation path
-9. **Polish** — loading states, error handling, mobile edge cases
+| Path | View | Width | Layout |
+|---|---|---|---|
+| `/` | Landing.vue | 480px | centered |
+| `/describe` | Describe.vue | 580px | centered |
+| `/processing` | Processing.vue | 580px | centered |
+| `/review` | Review.vue | 960px | top |
+| `/success` | Success.vue | 480px | centered |
+| `/history` | History.vue | 720px | top |
+| `/examples` | Examples.vue | 860px | top |
 
 ---
 
-## Open questions
+## Screens
 
-- **Cloudflare OAuth scopes:** Need to verify exact scope strings for Workers write access. May need to use API tokens flow instead of OAuth if CF doesn't expose a proper third-party OAuth for account access. Fallback: user pastes a CF API token on first use (one-time, stored encrypted in D1). Less elegant but proven.
-- **Bindings:** If a user's Worker needs KV/R2/D1 bindings, those can't be set up via simple script upload. V1 ignores bindings — pure stateless Workers only. V2 could add binding setup.
-- **Custom domains / routes:** V1 deploys to `*.workers.dev` only. Custom domains are a V2 feature.
-- **Geist availability:** Confirm Geist Sans/Mono are on Google Fonts CDN. If not, self-host from Vercel's GitHub release or fall back to a similar geometric sans (e.g., `"Plus Jakarta Sans"`).
+### Landing
+- Hero: "Deploy Workers in seconds"
+- Sign in with Cloudflare button (white Cloudflare icon from simpleicons)
+- Mock mode button (ghost)
+- Token fallback dialog (when OAuth unavailable)
+
+### Describe
+- Hero: "Describe your Worker"
+- Prompt block with textarea
+- Toolbar: model pill (toggles free/premium), meta text, examples icon button (ScrollText), generate button with SquareChevronRight icon
+- Bottom fixed dock: Cloudflare logo + docs links (Workers docs, Runtime APIs, Pricing)
+- On generate: stores tier in sessionStorage, routes to `/processing`
+
+### Processing
+- Hero: "AI is processing"
+- Rotating status lines: Parsing prompt → Planning worker logic → Writing worker code
+- Animated bars (no spinner)
+- Min 700ms display time, exits as soon as generate resolves
+- Error state shows inline error + back button
+
+### Review
+- Hero: "Review + Deploy"
+- Worker name input + URL preview
+- CodeMirror editor in prompt-block container
+- Toolbar: deploy URL preview + Deploy button + Regenerate button
+- DeployStepLog component below (always visible, shows 4 steps + event log)
+
+### Success
+- Green check circle
+- Hero: "Worker is live" (green)
+- URL block with green border accent
+- Actions: Copy URL (primary), Open (ghost), Deploy another (ghost)
+
+### History
+- Hero: "Deploy history"
+- Feed of prompt-block items: script name, timestamp, URL, expandable code
+
+### Examples
+- Hero: "Worker examples"
+- shadcn Tabs (5 sections: Creator/X, Growth, Security, Infra, AI)
+- shadcn ScrollArea feed (5 visible rows, internal scroll)
+- Each row: title, level badge, outcome, tags, "Use this" button
+- On click: fills `description` in useFlowState, routes to `/describe`
+
+---
+
+## Header
+
+Fixed topbar, `68px` height, `backdrop-filter: blur(12px)`.
+
+Left: Logo (orange brand-mark + IBM Plex Mono wordmark)
+Right (when authed): History link, Stats button (opens usage dialog), Avatar (click = logout), Theme toggle (lucide Sun/Moon icon button)
+
+Theme toggle: persisted to `localStorage` as `shipwrkrs:theme`. Reads system preference as default. Applied via `document.documentElement.setAttribute('data-theme', ...)`.
+
+---
+
+## Auth
+
+1. "Sign in with Cloudflare" → `/api/auth/login` → Cloudflare OAuth
+2. Callback → session cookie set → redirect to `/describe`
+3. Token fallback: user pastes CF API token manually (when OAuth disabled)
+4. Mock mode: `localStorage.setItem('shipwrkrs_ui_mock', '1')` — all API calls handled client-side with fake data, no limits
+
+---
+
+## Rate limits
+
+Stored in D1, keyed by Cloudflare user ID. Reset daily at 00:00 UTC. Mock mode has no limits.
+
+| Action | Limit |
+|---|---|
+| AI generations (Workers AI / free) | 10/day |
+| AI generations (Anthropic / premium) | 5/day |
+| Deploys | 20/day |
+
+---
+
+## Mock mode
+
+Full client-side simulation. Activated from Landing page. Stores flag in `localStorage`. All API calls (`/api/generate`, `/api/deploy`, `/api/history`, etc.) are handled by `mockApi()` in `src/composables/api.ts`. No backend required. No limits. Used for dev and demo.
+
+---
+
+## Do not touch
+
+- `functions/` — all backend Workers code
+- `src/composables/` — useAuth, useGenerate, useDeploy, useFlowState, useMeta, api.ts
+- `src/components/CodeEditor.vue`
+- `src/components/ui/sonner.ts`
+- `migrations/`
+- `wrangler.toml`

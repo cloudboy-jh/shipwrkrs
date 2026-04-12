@@ -1,100 +1,89 @@
 <template>
-  <section class="stack">
-    <UiCard class="stack">
-      <h2 class="section-title">Review + Deploy</h2>
-
-      <div class="stack" style="gap: 8px">
-        <span class="tiny">Worker name</span>
-        <UiInput v-model="scriptName" maxlength="63" />
-        <span class="tiny">https://{{ scriptName }}.{{ workersSubdomain }}.workers.dev</span>
+  <div class="page-top">
+    <div class="page-content">
+      <div class="hero">
+        <h1>Review + <em>Deploy</em></h1>
       </div>
 
-      <UiSeparator />
-      <CodeEditor v-model="generatedCode" />
+      <div class="name-block">
+        <label for="worker-name">Worker name</label>
+        <input id="worker-name" v-model="scriptName" maxlength="63" class="mono-input" />
+        <p class="url-preview">{{ previewUrl }}</p>
+      </div>
 
-      <div class="flow-log stack" style="gap: 8px">
-        <div class="row" style="justify-content: space-between">
-          <span class="tiny">Flow</span>
-          <strong class="tiny">{{ stageLabel }}</strong>
+      <div class="prompt-block">
+        <div class="editor-wrap">
+          <CodeEditor v-model="generatedCode" />
         </div>
-        <UiProgress :value="stageProgress" />
-        <div class="log-line" v-for="entry in logEntries" :key="entry.id">
-          <span class="tiny">{{ entry.time }}</span>
-          <span>{{ entry.text }}</span>
-        </div>
-      </div>
-
-      <div class="row wrap">
-        <UiButton variant="primary" size="lg" :disabled="loading" @click="confirmOpen = true">
-          {{ loading ? 'Deploying...' : 'Deploy' }}
-        </UiButton>
-        <UiButton variant="secondary" size="lg" :disabled="loading" @click="regenerate">
-          Regenerate
-        </UiButton>
-      </div>
-
-      <UiAlert variant="error" v-if="errorText">{{ errorText }}</UiAlert>
-    </UiCard>
-
-    <UiDialog :open="confirmOpen" @update:open="confirmOpen = $event">
-      <div class="stack">
-        <h3 style="margin: 0">Deploy this Worker?</h3>
-        <p class="muted" style="margin: 0">Script: {{ scriptName }}</p>
-        <div class="row" style="justify-content: flex-end">
-          <UiButton variant="ghost" @click="confirmOpen = false">Cancel</UiButton>
-          <UiButton variant="primary" @click="runDeploy">Deploy now</UiButton>
+        <div class="toolbar">
+          <p class="deploy-preview">{{ previewUrl }}</p>
+          <div class="toolbar-actions">
+            <button class="btn-primary" :disabled="loading" @click="runDeploy">
+              {{ loading ? 'Deploying...' : 'Deploy' }}
+            </button>
+            <button class="btn-ghost" :disabled="loading" @click="regenerate">Regenerate</button>
+          </div>
         </div>
       </div>
-    </UiDialog>
-  </section>
+
+      <DeployStepLog :steps="deploySteps" :events="deployEvents" />
+
+      <p class="error-text" v-if="errorText">{{ errorText }}</p>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import CodeEditor from '../components/CodeEditor.vue';
-import UiAlert from '../components/ui/Alert.vue';
-import UiButton from '../components/ui/Button.vue';
-import UiCard from '../components/ui/Card.vue';
-import UiDialog from '../components/ui/Dialog.vue';
-import UiInput from '../components/ui/Input.vue';
-import UiProgress from '../components/ui/Progress.vue';
-import UiSeparator from '../components/ui/Separator.vue';
+import DeployStepLog from '../components/DeployStepLog.vue';
 import { useSonner } from '../components/ui/sonner';
 import { useAuth } from '../composables/useAuth';
 import { useDeploy } from '../composables/useDeploy';
 import { useFlowState, slugifyWorkerName } from '../composables/useFlowState';
 
+type StepState = 'pending' | 'active' | 'done' | 'error';
+
 const errorText = ref('');
-const confirmOpen = ref(false);
-const stage = ref<'generated' | 'ready' | 'deploying' | 'live' | 'failed'>('generated');
-const logEntries = ref<Array<{ id: number; time: string; text: string }>>([]);
+const deployEvents = ref<Array<{ id: number; time: string; text: string }>>([]);
+const deploySteps = ref<Array<{ key: string; label: string; status: StepState; note?: string }>>([
+  { key: 'validate', label: 'Validate worker script', status: 'pending' },
+  { key: 'upload', label: 'Upload worker', status: 'pending' },
+  { key: 'propagate', label: 'Propagate to edge', status: 'pending' },
+  { key: 'finalize', label: 'Finalize deploy URL', status: 'pending' },
+]);
+
 const router = useRouter();
 const { generatedCode, scriptName, deployedUrl } = useFlowState();
 const { loading, deploy } = useDeploy();
-const { refresh, isAuthed, user } = useAuth();
+const { refresh, isAuthed } = useAuth();
 const { pushToast } = useSonner();
 
-const workersSubdomain = computed(() => user.value?.id || 'your-subdomain');
-const stageLabel = computed(() => {
-  if (stage.value === 'generated') return 'Generated';
-  if (stage.value === 'ready') return 'Ready to deploy';
-  if (stage.value === 'deploying') return 'Deploying';
-  if (stage.value === 'live') return 'Live';
-  return 'Failed';
-});
-const stageProgress = computed(() => {
-  if (stage.value === 'generated') return 35;
-  if (stage.value === 'ready') return 55;
-  if (stage.value === 'deploying') return 85;
-  if (stage.value === 'live') return 100;
-  return 55;
-});
+const previewUrl = computed(() => `https://${scriptName.value}.workers.dev`);
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function stamp(text: string) {
-  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  logEntries.value.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), time, text });
-  logEntries.value = logEntries.value.slice(0, 4);
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  deployEvents.value.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), time, text });
+  deployEvents.value = deployEvents.value.slice(0, 6);
+}
+
+function resetStepState() {
+  deploySteps.value = deploySteps.value.map((step) => ({ ...step, status: 'pending', note: '' }));
+}
+
+function setStep(index: number, status: StepState, note?: string) {
+  deploySteps.value = deploySteps.value.map((step, i) => (i === index ? { ...step, status, note } : step));
+}
+
+function markRemainingPendingFrom(index: number) {
+  deploySteps.value = deploySteps.value.map((step, i) =>
+    i >= index && step.status !== 'done' ? { ...step, status: 'pending', note: '' } : step,
+  );
 }
 
 onMounted(async () => {
@@ -104,62 +93,175 @@ onMounted(async () => {
     return;
   }
   if (!generatedCode.value.trim()) await router.replace('/describe');
-  stage.value = 'ready';
-  stamp('Worker code generated and loaded.');
 });
 
 async function runDeploy() {
   if (!generatedCode.value.trim()) {
     errorText.value = 'No code to deploy';
-    confirmOpen.value = false;
     return;
   }
+
   scriptName.value = slugifyWorkerName(scriptName.value);
   if (!scriptName.value) {
     errorText.value = 'Worker name is required';
-    confirmOpen.value = false;
     return;
   }
 
   errorText.value = '';
-  confirmOpen.value = false;
-  stage.value = 'deploying';
-  stamp('Deploy request started.');
+  resetStepState();
+  stamp(`Deploy started for ${scriptName.value}`);
+
   try {
-    const res = await deploy(scriptName.value, generatedCode.value);
+    setStep(0, 'active', 'Checking script + name');
+    await wait(450);
+    setStep(0, 'done', 'Validation complete');
+
+    setStep(1, 'active', 'Publishing worker bundle');
+    const [res] = await Promise.all([deploy(scriptName.value, generatedCode.value), wait(900)]);
+    setStep(1, 'done', 'Upload complete');
+
+    setStep(2, 'active', 'Rolling out globally');
+    await wait(700);
+    setStep(2, 'done', 'Edge propagation complete');
+
+    setStep(3, 'active', 'Resolving workers.dev URL');
+    await wait(500);
+    setStep(3, 'done', 'Ready');
+
     deployedUrl.value = res.url;
-    stage.value = 'live';
-    stamp(`Worker deployed to ${res.url ?? 'workers.dev'}.`);
+    stamp(`Deploy success: ${res.url ?? 'workers.dev'}`);
     pushToast({ title: 'Deploy successful', message: res.url ?? 'Worker is live', variant: 'success' });
     await router.push('/success');
   } catch (err) {
     errorText.value = err instanceof Error ? err.message : 'Deploy failed';
-    stage.value = 'failed';
+    const activeIndex = deploySteps.value.findIndex((step) => step.status === 'active');
+    if (activeIndex >= 0) {
+      setStep(activeIndex, 'error', errorText.value);
+      markRemainingPendingFrom(activeIndex + 1);
+    }
     stamp(`Deploy failed: ${errorText.value}`);
     pushToast({ title: 'Deploy failed', message: errorText.value, variant: 'error' });
   }
 }
 
 async function regenerate() {
-  stage.value = 'generated';
-  stamp('Returned to describe screen for regeneration.');
   await router.push('/describe');
 }
 </script>
 
 <style scoped>
-.flow-log {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #0f1317;
-  padding: 10px;
+.page-content {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.log-line {
+.hero {
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.hero h1 {
+  font-family: var(--sans);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--tx);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--o);
+}
+
+.name-block {
   display: flex;
-  gap: 10px;
-  align-items: center;
-  color: var(--text-secondary);
+  flex-direction: column;
+  gap: 8px;
+}
+
+.name-block label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t2);
+}
+
+.mono-input {
+  width: 100%;
+  height: 42px;
+  background: var(--el);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  color: var(--tx);
+  padding: 0 12px;
+  font-family: var(--mono);
   font-size: 13px;
+  font-weight: 600;
+  outline: none;
+}
+
+.url-preview {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tm);
+}
+
+.editor-wrap {
+  padding: 14px;
+}
+
+.toolbar {
+  gap: 14px;
+}
+
+.deploy-preview {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tm);
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-primary:disabled,
+.btn-ghost:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.error-text {
+  color: var(--er);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .hero h1 {
+    font-size: 30px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .btn-primary,
+  .btn-ghost {
+    flex: 1;
+  }
 }
 </style>

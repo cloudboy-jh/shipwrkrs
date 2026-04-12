@@ -1,50 +1,89 @@
 <template>
-  <section class="stack">
-    <UiCard class="stack">
-      <h2 class="section-title">Describe your Worker</h2>
-      <p class="muted">Use plain English. You can edit the code before deploy.</p>
-
-      <div class="stack" style="gap: 8px">
-        <span class="tiny">Model</span>
-        <select v-model="tier" class="ui-input">
-          <option value="free">Fast (free)</option>
-          <option value="premium">Premium</option>
-        </select>
+  <div class="page-center">
+    <div class="page-content">
+      <div class="hero">
+        <h1>Describe your <em>Worker</em></h1>
+        <p>plain english → generated code → one-click deploy</p>
       </div>
 
-      <UiTextarea v-model="description" placeholder="Describe your Worker..." maxlength="3000" />
+      <div class="prompt-block">
+        <div class="prompt-inner">
+          <textarea
+            class="prompt-textarea"
+            v-model="description"
+            placeholder="A proxy that adds CORS headers to any API..."
+            maxlength="3000"
+          />
+        </div>
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <button class="model-pill" @click="toggleTier">
+              <span class="model-dot"></span>
+              {{ tier === 'free' ? 'qwen-coder-32b' : 'claude-sonnet' }}
+            </button>
+            <span class="meta-text">{{ tier === 'free' ? 'free' : 'premium' }}</span>
+            <button class="icon-btn" title="Worker examples" aria-label="Worker examples" @click="openExamples">
+              <ScrollText :size="14" />
+            </button>
+          </div>
+          <button class="btn-primary" :disabled="loading" @click="runGenerate">
+            <span>{{ loading ? 'Writing...' : 'Generate' }}</span>
+            <SquareChevronRight :size="14" />
+          </button>
+        </div>
+      </div>
 
-      <UiProgress :value="loading ? 72 : 0" v-if="loading" />
+      <p class="error-text" v-if="errorText">{{ errorText }}</p>
+    </div>
 
-      <UiButton variant="primary" size="lg" class="generate-cta" :disabled="loading" @click="runGenerate">
-        {{ loading ? 'Writing your Worker...' : 'Generate Worker' }}
-      </UiButton>
-
-      <UiAlert variant="error" v-if="errorText">{{ errorText }}</UiAlert>
-    </UiCard>
-  </section>
+    <div class="page-bottom-links">
+      <img class="cf-mark" src="https://cdn.simpleicons.org/cloudflare/ffffff" alt="" aria-hidden="true" />
+      <div class="docs-links">
+        <a class="doc-badge" href="https://developers.cloudflare.com/workers/" target="_blank" rel="noreferrer">
+          Workers docs
+        </a>
+        <a
+          class="doc-badge"
+          href="https://developers.cloudflare.com/workers/runtime-apis/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Runtime APIs
+        </a>
+        <a
+          class="doc-badge"
+          href="https://developers.cloudflare.com/workers/platform/pricing/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Pricing + limits
+        </a>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
+import { ScrollText, SquareChevronRight } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import UiAlert from '../components/ui/Alert.vue';
-import UiButton from '../components/ui/Button.vue';
-import UiCard from '../components/ui/Card.vue';
-import UiProgress from '../components/ui/Progress.vue';
-import UiTextarea from '../components/ui/Textarea.vue';
-import { useSonner } from '../components/ui/sonner';
 import { useAuth } from '../composables/useAuth';
 import { useFlowState, slugifyWorkerName } from '../composables/useFlowState';
-import { useGenerate } from '../composables/useGenerate';
 
 const tier = ref<'free' | 'premium'>('free');
 const errorText = ref('');
 const router = useRouter();
 const { description, generatedCode, scriptName } = useFlowState();
-const { loading, generate } = useGenerate();
+const loading = ref(false);
 const { refresh, isAuthed } = useAuth();
-const { pushToast } = useSonner();
+
+function toggleTier() {
+  tier.value = tier.value === 'free' ? 'premium' : 'free';
+}
+
+function openExamples() {
+  router.push('/examples');
+}
 
 onMounted(async () => {
   await refresh();
@@ -57,22 +96,185 @@ async function runGenerate() {
     return;
   }
   errorText.value = '';
-  try {
-    const res = await generate(description.value.trim(), tier.value);
-    generatedCode.value = res.code;
-    scriptName.value = slugifyWorkerName(description.value);
-    pushToast({ title: 'Worker generated', message: `Model: ${res.model}`, variant: 'success' });
-    await router.push('/review');
-  } catch (err) {
-    errorText.value = err instanceof Error ? err.message : 'Generation failed';
-  }
+  generatedCode.value = '';
+  scriptName.value = slugifyWorkerName(description.value);
+  sessionStorage.setItem('shipwrkrs:tier', tier.value);
+  await router.push('/processing');
 }
 </script>
 
 <style scoped>
-.generate-cta {
-  height: 48px;
-  font-size: 16px;
-  font-weight: 700;
+
+.page-content {
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.hero { text-align: center; }
+
+.hero h1 {
+  font-family: var(--sans);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--tx);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.hero h1 em { font-style: normal; color: var(--o); }
+
+.hero p {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tm);
+  margin-top: 10px;
+}
+
+.prompt-inner { padding: 20px; }
+
+.prompt-textarea {
+  width: 100%;
+  min-height: 120px;
+  background: transparent;
+  border: none;
+  color: var(--tx);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.7;
+  resize: none;
+  outline: none;
+}
+
+.prompt-textarea::placeholder { color: var(--tm); }
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.model-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t2);
+  background: var(--el);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: 120ms ease;
+}
+
+.model-pill:hover {
+  border-color: var(--o);
+  color: var(--tx);
+}
+
+.model-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gn);
+}
+
+.meta-text {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tm);
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid var(--bd);
+  background: var(--el);
+  color: var(--o);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.docs-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.page-bottom-links {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cf-mark {
+  width: 16px;
+  height: 16px;
+  opacity: 0.9;
+}
+
+.doc-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t2);
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  padding: 7px 12px;
+  text-decoration: none;
+  transition: 120ms ease;
+}
+
+.doc-badge:hover {
+  color: var(--tx);
+  border-color: var(--o);
+  background: var(--el);
+}
+
+.error-text {
+  text-align: center;
+  color: var(--er);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .hero h1 { font-size: 28px; }
+  .toolbar { flex-wrap: wrap; gap: 10px; }
+  .page-bottom-links {
+    width: calc(100vw - 24px);
+    justify-content: center;
+    flex-wrap: wrap;
+    bottom: 12px;
+  }
 }
 </style>
