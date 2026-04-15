@@ -10,6 +10,7 @@
 
 - Preserve project design tokens/colors/typography, but apply them through shadcn-vue component structure.
 - Avoid unstructured raw markup dumps; pages must have clear visual hierarchy and spacing.
+- Do not add CTA-style helper copy or CTA framing language in UI text.
 
 ## Component Policy
 

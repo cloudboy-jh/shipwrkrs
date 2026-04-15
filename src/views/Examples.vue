@@ -8,8 +8,8 @@
 
       <Tabs :default-value="sections[0].title" class="w-full">
         <div class="top-controls">
-          <TabsList class="tabs-list">
-            <TabsTrigger v-for="section in sections" :key="section.title" :value="section.title" class="tab-trigger">
+          <TabsList class="h-13 rounded-xl p-2 gap-2">
+            <TabsTrigger v-for="section in sections" :key="section.title" :value="section.title" class="min-h-9 rounded-lg px-5 py-2 text-sm">
               {{ section.title }}
             </TabsTrigger>
           </TabsList>
@@ -50,7 +50,10 @@
                       </Button>
                     </div>
 
-                    <Separator v-if="index < section.examples.length - 1" class="row-sep" />
+                    <Separator
+                      v-if="index < section.examples.length - 1"
+                      class="my-1 bg-[color-mix(in_srgb,var(--tx),var(--bd)_88%)] opacity-65"
+                    />
                   </template>
                 </div>
               </ScrollArea>
@@ -216,15 +219,6 @@ async function backToDescribe() {
   gap: 10px;
 }
 
-.tabs-list {
-  width: fit-content;
-  max-width: 100%;
-}
-
-.tab-trigger {
-  min-height: 40px;
-}
-
 .tab-content {
   margin-top: 10px;
 }
@@ -320,10 +314,6 @@ async function backToDescribe() {
   min-width: 86px;
 }
 
-.row-sep {
-  background: var(--bd);
-}
-
 .back-btn {
   min-width: 84px;
 }
@@ -332,10 +322,6 @@ async function backToDescribe() {
   .top-controls {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .tabs-list {
-    width: 100%;
   }
 
   .back-btn {

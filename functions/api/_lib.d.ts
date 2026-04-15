@@ -5,6 +5,8 @@ export type Env = {
     CF_OAUTH_CLIENT_ID?: string;
     CF_OAUTH_CLIENT_SECRET?: string;
     CF_OAUTH_REDIRECT_URI?: string;
+    CF_DEPLOY_API_TOKEN?: string;
+    CF_DEPLOY_ACCOUNT_ID?: string;
     AUTH_ENCRYPTION_KEY?: string;
     SESSION_SECRET?: string;
     MOCK_MODE?: string;

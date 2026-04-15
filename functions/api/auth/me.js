@@ -1,8 +1,9 @@
 import { isMockMode, json, requireSession } from '../_lib';
 export const onRequestGet = async (context) => {
     const session = await requireSession(context).catch(() => null);
+    const oauthEnabled = Boolean((context.env.CF_OAUTH_CLIENT_ID && context.env.CF_OAUTH_CLIENT_SECRET) || context.env.CF_DEPLOY_API_TOKEN);
     return json({
-        oauthEnabled: Boolean(context.env.CF_OAUTH_CLIENT_ID && context.env.CF_OAUTH_CLIENT_SECRET),
+        oauthEnabled,
         mockMode: isMockMode(context.env),
         user: session
             ? {

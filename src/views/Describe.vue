@@ -1,16 +1,19 @@
 <template>
   <div class="page-center">
     <div class="page-content">
-      <div class="hero">
-        <h1>Describe your <em>Worker</em></h1>
-        <p>plain english → generated code → one-click deploy</p>
-      </div>
+      <Transition name="hero-fade">
+        <div v-if="showIntro" class="hero">
+          <h1>Describe your <em>Worker</em></h1>
+          <p>plain english → generated code → one-click deploy</p>
+        </div>
+      </Transition>
 
       <div class="prompt-block">
         <div class="prompt-inner">
           <textarea
             class="prompt-textarea"
             v-model="description"
+            @input="handleDescriptionInput"
             placeholder="A proxy that adds CORS headers to any API..."
             maxlength="3000"
           />
@@ -37,7 +40,7 @@
     </div>
 
     <div class="page-bottom-links">
-      <img class="cf-mark" src="https://cdn.simpleicons.org/cloudflare/ffffff" alt="" aria-hidden="true" />
+      <img class="cf-mark" :src="cloudflareIconSrc" alt="" aria-hidden="true" />
       <div class="docs-links">
         <a class="doc-badge" href="https://developers.cloudflare.com/workers/" target="_blank" rel="noreferrer">
           Workers docs
@@ -65,7 +68,7 @@
 
 <script setup lang="ts">
 import { ScrollText, SquareChevronRight } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
 import { useFlowState, slugifyWorkerName } from '../composables/useFlowState';
@@ -76,6 +79,36 @@ const router = useRouter();
 const { description, generatedCode, scriptName } = useFlowState();
 const loading = ref(false);
 const { refresh, isAuthed } = useAuth();
+const showIntro = ref(true);
+const introTimerMs = 12_000;
+let introTimer: ReturnType<typeof setTimeout> | null = null;
+const currentTheme = ref<'light' | 'dark'>(
+  document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark',
+);
+const cloudflareIconSrc = computed(() =>
+  currentTheme.value === 'light'
+    ? 'https://cdn.simpleicons.org/cloudflare/f25706'
+    : 'https://cdn.simpleicons.org/cloudflare/ffffff',
+);
+let themeObserver: MutationObserver | null = null;
+
+function hideIntro() {
+  showIntro.value = false;
+}
+
+function startIntroTimer() {
+  introTimer = setTimeout(() => {
+    hideIntro();
+  }, introTimerMs);
+}
+
+function handleDescriptionInput() {
+  if (description.value.trim()) hideIntro();
+}
+
+function syncTheme() {
+  currentTheme.value = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+}
 
 function toggleTier() {
   tier.value = tier.value === 'free' ? 'premium' : 'free';
@@ -88,6 +121,20 @@ function openExamples() {
 onMounted(async () => {
   await refresh();
   if (!isAuthed.value) await router.replace('/');
+
+  if (description.value.trim()) {
+    hideIntro();
+  } else {
+    startIntroTimer();
+  }
+
+  themeObserver = new MutationObserver(syncTheme);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+});
+
+onBeforeUnmount(() => {
+  if (introTimer) clearTimeout(introTimer);
+  if (themeObserver) themeObserver.disconnect();
 });
 
 async function runGenerate() {
@@ -132,6 +179,17 @@ async function runGenerate() {
   font-weight: 500;
   color: var(--tm);
   margin-top: 10px;
+}
+
+.hero-fade-enter-active,
+.hero-fade-leave-active {
+  transition: opacity 260ms ease, transform 260ms ease, margin 260ms ease;
+}
+
+.hero-fade-enter-from,
+.hero-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .prompt-inner { padding: 20px; }
@@ -238,6 +296,13 @@ async function runGenerate() {
   width: 16px;
   height: 16px;
   opacity: 0.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-fade-enter-active,
+  .hero-fade-leave-active {
+    transition: none;
+  }
 }
 
 .doc-badge {

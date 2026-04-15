@@ -13,9 +13,9 @@ export const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold rounded-[10px]",
         outline:
-          "border-2 border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground font-semibold rounded-[10px]",
+          "border border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground font-semibold rounded-[10px]",
         secondary:
-          "bg-secondary text-secondary-foreground border-2 border-border hover:bg-accent font-semibold rounded-[10px]",
+          "bg-secondary text-secondary-foreground border border-border hover:bg-accent font-semibold rounded-[10px]",
         ghost:
           "text-muted-foreground hover:bg-accent hover:text-accent-foreground font-semibold rounded-[10px]",
         link: "text-primary underline-offset-4 hover:underline font-semibold",

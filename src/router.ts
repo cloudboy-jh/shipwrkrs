@@ -4,7 +4,6 @@ import Describe from './views/Describe.vue';
 import Examples from './views/Examples.vue';
 import Processing from './views/Processing.vue';
 import Review from './views/Review.vue';
-import Success from './views/Success.vue';
 import History from './views/History.vue';
 
 const router = createRouter({
@@ -26,7 +25,7 @@ const router = createRouter({
       path: '/examples',
       name: 'examples',
       component: Examples,
-      meta: { width: 720, align: 'top', stepLabel: 'Examples', step: 1 },
+      meta: { width: 860, align: 'top', stepLabel: 'Examples', step: 1 },
     },
     {
       path: '/review',
@@ -39,12 +38,6 @@ const router = createRouter({
       name: 'processing',
       component: Processing,
       meta: { width: 580, align: 'center', stepLabel: 'Processing', step: 2 },
-    },
-    {
-      path: '/success',
-      name: 'success',
-      component: Success,
-      meta: { width: 480, align: 'center', stepLabel: 'Live', step: 3 },
     },
     {
       path: '/history',

@@ -5,7 +5,7 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "shipwrkrs-db"
-database_id = "replace-with-your-d1-id"
+database_id = "79199a29-cbbe-4a4f-aabc-21c667774f82"
 
 [vars]
 MOCK_MODE = "true"

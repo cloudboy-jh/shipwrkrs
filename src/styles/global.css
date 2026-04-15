@@ -154,7 +154,7 @@ a { color: inherit; }
   min-height: calc(100vh - var(--topbar-h));
   display: flex;
   justify-content: center;
-  padding: 80px 24px 48px;
+  padding: 24px;
 }
 
 .prompt-block {
@@ -216,7 +216,7 @@ a { color: inherit; }
   padding: 0 20px;
   background: transparent;
   color: var(--t2);
-  border: 2px solid var(--bd);
+  border: 1px solid var(--bd);
   border-radius: 10px;
   font-family: var(--sans);
   font-size: 14px;
