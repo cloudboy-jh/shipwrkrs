@@ -1,28 +1,50 @@
 <template>
-  <div class="code-editor-shell" :class="{ focused: isFocused }">
+  <div class="code-editor-shell" :class="{ focused: isFocused, expanded: isExpanded }">
     <div class="editor-head">
       <p class="editor-title">Worker code</p>
       <span class="editor-badge">Live Editor</span>
     </div>
-    <div ref="editorRoot" class="code-editor" />
+    <div class="editor-body">
+      <div ref="editorRoot" class="code-editor" />
+      <button
+        v-if="showExpandControl && !isExpanded"
+        class="expand-btn"
+        type="button"
+        aria-label="Expand editor"
+        @click="expandEditor"
+      >
+        <Maximize2 :size="15" />
+      </button>
+    </div>
     <p class="editor-hint">Click to edit code before deploy.</p>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Maximize2 } from 'lucide-vue-next';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { javascript } from '@codemirror/lang-javascript';
 import { defaultKeymap } from '@codemirror/commands';
 import { EditorState } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{ modelValue: string }>();
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
+const emit = defineEmits<{
+  'update:modelValue': [value: string];
+  'expanded-change': [expanded: boolean];
+}>();
 
 const editorRoot = ref<HTMLElement | null>(null);
 const isFocused = ref(false);
+const isExpanded = ref(false);
+const showExpandControl = computed(() => props.modelValue.length >= 30);
 let editorView: EditorView | null = null;
+
+function expandEditor() {
+  isExpanded.value = true;
+  emit('expanded-change', true);
+}
 
 onMounted(() => {
   if (!editorRoot.value) return;
@@ -49,7 +71,7 @@ onMounted(() => {
         }),
         EditorView.theme({
           '&': {
-            minHeight: '420px',
+            minHeight: 'var(--editor-min-height)',
             borderRadius: '12px',
             overflow: 'hidden',
             backgroundColor: 'var(--sf)',
@@ -99,6 +121,11 @@ watch(
     editorView.dispatch({
       changes: { from: 0, to: current.length, insert: next },
     });
+
+    if (next.length < 30 && isExpanded.value) {
+      isExpanded.value = false;
+      emit('expanded-change', false);
+    }
   },
 );
 
@@ -110,11 +137,18 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .code-editor-shell {
+  --editor-min-height: 420px;
   border: 1px solid var(--bd);
   border-radius: 14px;
   overflow: hidden;
   background: var(--sf);
-  transition: border-color 140ms ease, box-shadow 140ms ease;
+  width: 100%;
+  transition: width 220ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.code-editor-shell.expanded {
+  --editor-min-height: min(52vh, 620px);
+  width: max(100%, min(66vw, calc(100vw - 48px)));
 }
 
 .code-editor-shell.focused {
@@ -149,8 +183,34 @@ onBeforeUnmount(() => {
   padding: 3px 8px;
 }
 
+.editor-body {
+  position: relative;
+}
+
 .code-editor {
-  min-height: 420px;
+  min-height: var(--editor-min-height);
+}
+
+.expand-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--bd);
+  background: color-mix(in srgb, var(--bg), var(--sf) 30%);
+  color: var(--t2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 120ms ease;
+}
+
+.expand-btn:hover {
+  color: var(--tx);
+  border-color: var(--o);
 }
 
 .editor-hint {

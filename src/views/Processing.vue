@@ -2,7 +2,7 @@
   <div class="page-center">
     <div class="page-content">
       <div class="hero">
-        <h1>AI is <em>processing</em></h1>
+        <h1>Generating <em>Worker code</em></h1>
         <p>{{ currentLine }}</p>
       </div>
 

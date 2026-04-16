@@ -31,7 +31,7 @@ const router = createRouter({
       path: '/review',
       name: 'review',
       component: Review,
-      meta: { width: 960, align: 'top', stepLabel: 'Review', step: 2 },
+      meta: { width: 1320, align: 'top', stepLabel: 'Review', step: 2 },
     },
     {
       path: '/processing',

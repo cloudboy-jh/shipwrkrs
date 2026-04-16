@@ -32,6 +32,7 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+.dev.vars
 
 # Cloudflare / Wrangler local state
 .wrangler/

@@ -1,6 +1,11 @@
 <template>
   <div class="page-top">
-    <div class="page-content">
+    <div
+      :class="[
+        'page-content',
+        { 'is-editor-expanded': isEditorExpanded, 'is-deploy-mode': viewState === 'deploy' },
+      ]"
+    >
       <Transition name="hero-fade">
         <div v-if="viewState === 'review'" class="hero">
           <h1>Review + <em>Deploy</em></h1>
@@ -15,9 +20,9 @@
             <p class="url-preview">{{ previewUrl }}</p>
           </div>
 
-          <div class="prompt-block">
+          <div :class="['prompt-block', { 'is-expanded': isEditorExpanded }]">
             <div class="editor-wrap">
-              <CodeEditor v-model="generatedCode" />
+              <CodeEditor v-model="generatedCode" @expanded-change="handleEditorExpandedChange" />
             </div>
             <div class="toolbar toolbar-grid">
               <div class="toolbar-main">
@@ -76,6 +81,7 @@ type ReviewPhase = 'idle' | 'deploying' | 'error' | 'success';
 
 const errorText = ref('');
 const phase = ref<ReviewPhase>('idle');
+const isEditorExpanded = ref(false);
 const deployEvents = ref<Array<{ id: number; time: string; text: string }>>([]);
 const deploySteps = ref<Array<{ key: string; label: string; status: StepState; note?: string }>>([
   { key: 'validate', label: 'Validate script', status: 'pending' },
@@ -116,6 +122,10 @@ function markRemainingPendingFrom(index: number) {
   deploySteps.value = deploySteps.value.map((step, i) =>
     i >= index && step.status !== 'done' ? { ...step, status: 'pending', note: '' } : step,
   );
+}
+
+function handleEditorExpandedChange(expanded: boolean) {
+  isEditorExpanded.value = expanded;
 }
 
 onMounted(async () => {
@@ -194,6 +204,15 @@ async function deployAnother() {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  transition: max-width 220ms ease;
+}
+
+.page-content.is-deploy-mode {
+  max-width: clamp(960px, 72vw, 1320px);
+}
+
+.page-content.is-editor-expanded {
+  max-width: max(960px, min(66vw, calc(100vw - 48px)));
 }
 
 .review-stack,
@@ -201,6 +220,16 @@ async function deployAnother() {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.review-stack {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.deploy-stack {
+  width: 100%;
 }
 
 .review-swap-enter-active,
@@ -278,6 +307,16 @@ async function deployAnother() {
 
 .editor-wrap {
   padding: 14px;
+}
+
+.prompt-block {
+  width: 100%;
+  align-self: center;
+  transition: width 220ms ease;
+}
+
+.prompt-block.is-expanded {
+  width: max(100%, min(66vw, calc(100vw - 48px)));
 }
 
 .toolbar {

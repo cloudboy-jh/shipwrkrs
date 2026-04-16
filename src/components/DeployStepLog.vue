@@ -88,7 +88,7 @@ function stateText(state: StepState) {
   background: var(--sf);
   border: 1px solid var(--bd);
   border-radius: 12px;
-  padding: 12px;
+  padding: 16px;
 }
 
 .deploy-log.success-state {
@@ -210,7 +210,7 @@ function stateText(state: StepState) {
 
 .title {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--t2);
 }
@@ -218,7 +218,7 @@ function stateText(state: StepState) {
 .subtitle {
   margin-top: 3px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--tm);
 }
@@ -242,32 +242,36 @@ function stateText(state: StepState) {
 .steps {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 10px;
 }
 
 .step {
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 12px 0 12px 2px;
+  gap: 12px;
+  min-height: 84px;
+  padding: 14px 14px 14px 10px;
+  border: 1px solid color-mix(in srgb, var(--bd), transparent 25%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg), var(--sf) 24%);
 }
 
 .step:not(:last-child)::after {
   content: '';
   position: absolute;
-  left: 5px;
-  top: 21px;
-  bottom: -1px;
+  left: 13px;
+  top: 28px;
+  bottom: -16px;
   width: 1px;
   background: color-mix(in srgb, var(--tx), transparent 88%);
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  margin-top: 5px;
+  margin-top: 6px;
   border: 1px solid var(--bd);
   background: transparent;
   flex: 0 0 auto;
@@ -308,17 +312,17 @@ function stateText(state: StepState) {
 
 .label {
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--tx);
 }
 
 .state-pill {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   border-radius: 999px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border: 1px solid var(--bd);
   color: var(--t2);
   white-space: nowrap;
@@ -344,13 +348,13 @@ function stateText(state: StepState) {
 
 .note {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--t2);
 }
 
 .events {
-  max-height: 220px;
+  max-height: min(42vh, 420px);
   overflow: auto;
   border: 1px solid var(--bd);
   border-radius: 10px;
@@ -367,7 +371,7 @@ function stateText(state: StepState) {
   gap: 10px;
   align-items: baseline;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 
