@@ -14,9 +14,5 @@ database_id = "79199a29-cbbe-4a4f-aabc-21c667774f82"
 [ai]
 binding = "AI"
 
-[[artifacts]]
-binding = "ARTIFACTS"
-namespace = "default"
-
 [vars]
 MOCK_MODE = "false"

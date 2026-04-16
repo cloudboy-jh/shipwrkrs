@@ -1,7 +1,6 @@
 export type Env = {
   DB: D1Database;
   AI: Ai;
-  ARTIFACTS?: ArtifactsBinding;
   ANTHROPIC_API_KEY?: string;
   CF_OAUTH_CLIENT_ID?: string;
   CF_OAUTH_CLIENT_SECRET?: string;
@@ -11,23 +10,6 @@ export type Env = {
   AUTH_ENCRYPTION_KEY?: string;
   SESSION_SECRET?: string;
   MOCK_MODE?: string;
-};
-
-type ArtifactsBinding = {
-  openRepo(repoName: string): Promise<ArtifactRepo>;
-  mintReadToken(repoName: string, options?: { expiration?: number }): Promise<string>;
-  mintWriteToken(repoName: string, options?: { expiration?: number }): Promise<string>;
-};
-
-type ArtifactRepo = {
-  commit(params: {
-    branch: string;
-    message: string;
-    files: Array<{ path: string; content: string }>;
-    parent?: string;
-  }): Promise<{ sha: string; remote: string }>;
-  getFile(branch: string, path: string): Promise<{ content: string; sha: string } | null>;
-  listCommits(branch?: string): Promise<Array<{ sha: string; message: string; timestamp: number }>>;
 };
 
 type Session = {
@@ -321,74 +303,13 @@ export async function logDeploy(
   status: 'live' | 'deleted',
   code: string,
   secretNames: string[] = [],
-  artifactRemote?: string,
-  artifactCommitSha?: string,
 ) {
   await env.DB.prepare(
-    `INSERT INTO deploy_history (user_id, script_name, url, status, code, secret_names, artifact_remote, artifact_commit_sha, created_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`,
+    `INSERT INTO deploy_history (user_id, script_name, url, status, code, secret_names, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
   )
-    .bind(userId, scriptName, url, status, code, JSON.stringify(secretNames), artifactRemote ?? null, artifactCommitSha ?? null, Date.now())
+    .bind(userId, scriptName, url, status, code, JSON.stringify(secretNames), Date.now())
     .run();
-}
-
-export async function getPreviousArtifactCommit(
-  env: Env,
-  userId: string,
-  scriptName: string,
-): Promise<{ commitSha: string; remote: string } | null> {
-  const row = await env.DB.prepare(
-    `SELECT artifact_commit_sha, artifact_remote FROM deploy_history
-     WHERE user_id = ?1 AND script_name = ?2 AND artifact_commit_sha IS NOT NULL
-     ORDER BY created_at DESC LIMIT 1`,
-  )
-    .bind(userId, scriptName)
-    .first<{ artifact_commit_sha: string; artifact_remote: string }>();
-  if (!row?.artifact_commit_sha) return null;
-  return { commitSha: row.artifact_commit_sha, remote: row.artifact_remote };
-}
-
-export async function getArtifactCommitByDeployId(
-  env: Env,
-  userId: string,
-  deployId: number,
-): Promise<{ commitSha: string; remote: string; scriptName: string } | null> {
-  const row = await env.DB.prepare(
-    `SELECT artifact_commit_sha, artifact_remote, script_name FROM deploy_history
-     WHERE id = ?1 AND user_id = ?2`,
-  )
-    .bind(deployId, userId)
-    .first<{ artifact_commit_sha: string; artifact_remote: string; script_name: string }>();
-  if (!row?.artifact_commit_sha) return null;
-  return { commitSha: row.artifact_commit_sha, remote: row.artifact_remote, scriptName: row.script_name };
-}
-
-export async function commitCodeToArtifacts(
-  env: Env,
-  scriptName: string,
-  code: string,
-): Promise<{ sha: string; remote: string } | null> {
-  if (!env.ARTIFACTS) return null;
-  const repo = await env.ARTIFACTS.openRepo(scriptName);
-  const timestamp = new Date().toISOString();
-  const message = `Deploy via shipwrkrs — ${timestamp}`;
-  const result = await repo.commit({
-    branch: 'main',
-    message,
-    files: [{ path: 'worker.js', content: code }],
-  });
-  return result;
-}
-
-export async function fetchArtifactFileContent(
-  env: Env,
-  scriptName: string,
-  commitSha: string,
-): Promise<string | null> {
-  if (!env.ARTIFACTS) return null;
-  const repo = await env.ARTIFACTS.openRepo(scriptName);
-  const file = await repo.getFile(commitSha, 'worker.js');
-  return file?.content ?? null;
 }
 
 export function sleep(ms: number) {

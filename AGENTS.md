@@ -10,13 +10,11 @@ shipwrkrs.dev — Generate and deploy Cloudflare Workers from natural language p
 - **Backend**: Cloudflare Pages Functions (single Worker)
 - **Database**: Cloudflare D1 (SQLite)
 - **AI**: Workers AI (free) / Anthropic (premium)
-- **Storage**: Cloudflare Artifacts (versioned code)
 
 ## Key Directories
 
 ```
 functions/api/      # API routes
-  artifacts/       # Artifacts integration
   auth/            # OAuth flows
   _lib.ts          # Shared utilities
 checks/            # Cloudflare Check files (if any)
@@ -48,16 +46,13 @@ See README.md for full config. Essentials:
 
 See `migrations/` for full schema. Key tables:
 - `users` — user accounts
-- `deploy_history` — deploys with Artifact metadata
+- `deploy_history` — deploys
 - `rate_limits` — daily usage tracking
 
 ## Recent Major Changes (April 2026)
 
-1. **Cloudflare Artifacts integration** — Every deploy commits code to Artifacts
-2. **Diff viewer** — Re-deploys show diff vs previous version using @pierre/diffs
-3. **Clone Worker feature** — Git clone URLs with short-lived read tokens
-4. **Dev server** — Uses concurrently to run wrangler + vite together
-5. **Hero fade** — Review heading fades out after 5 seconds
+1. **Dev server** — Uses concurrently to run wrangler + vite together
+2. **Hero fade** — Review heading fades out after 5 seconds
 
 ## Code Style
 

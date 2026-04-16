@@ -5,7 +5,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!session) return badRequest('Unauthorized', 401);
 
   const rows = await context.env.DB.prepare(
-    `SELECT id, script_name, url, status, code, secret_names, artifact_commit_sha, created_at
+    `SELECT id, script_name, url, status, code, secret_names, created_at
      FROM deploy_history
      WHERE user_id = ?1
      ORDER BY created_at DESC
@@ -19,7 +19,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       status: 'live' | 'deleted';
       code: string;
       secret_names: string | null;
-      artifact_commit_sha: string | null;
       created_at: number;
     }>();
 
@@ -37,7 +36,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           return [];
         }
       })(),
-      hasArtifact: r.artifact_commit_sha !== null,
       createdAt: new Date(r.created_at).toISOString(),
     })),
   });
