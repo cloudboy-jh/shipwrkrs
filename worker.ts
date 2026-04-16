@@ -46,6 +46,17 @@ function jsonError(message: string, status: number, headers?: HeadersInit) {
   });
 }
 
+function withNoStore(response: Response) {
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  headers.set('Pragma', 'no-cache');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
@@ -54,20 +65,21 @@ export default {
     if (path.startsWith('/api/')) {
       const methodHandlers = routes[path];
       if (!methodHandlers) {
-        return jsonError('Not found', 404);
+        return withNoStore(jsonError('Not found', 404));
       }
 
       const handler = methodHandlers[request.method as keyof typeof methodHandlers];
       if (!handler) {
         const allow = Object.keys(methodHandlers).join(', ');
-        return jsonError('Method not allowed', 405, { Allow: allow });
+        return withNoStore(jsonError('Method not allowed', 405, { Allow: allow }));
       }
 
       try {
-        return await handler({ request, env });
+        const response = await handler({ request, env });
+        return withNoStore(response);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Internal server error';
-        return jsonError(message, 500);
+        return withNoStore(jsonError(message, 500));
       }
     }
 
