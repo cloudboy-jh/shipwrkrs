@@ -1,4 +1,7 @@
 import type { Env as ApiEnv } from './functions/api/_lib';
+import { onRequestGet as artifactCodeGet } from './functions/api/artifacts/code';
+import { onRequestGet as artifactDiffGet } from './functions/api/artifacts/diff';
+import { onRequestPost as artifactTokenPost } from './functions/api/artifacts/token';
 import { onRequestGet as authCallbackGet } from './functions/api/auth/callback';
 import { onRequestGet as authLoginGet } from './functions/api/auth/login';
 import { onRequestGet as authMeGet } from './functions/api/auth/me';
@@ -24,6 +27,9 @@ type WorkerEnv = ApiEnv & {
 };
 
 const routes: Record<string, Partial<Record<string, Handler>>> = {
+  '/api/artifacts/code': { GET: artifactCodeGet as Handler },
+  '/api/artifacts/diff': { GET: artifactDiffGet as Handler },
+  '/api/artifacts/token': { POST: artifactTokenPost as Handler },
   '/api/auth/login': { GET: authLoginGet as Handler },
   '/api/auth/callback': { GET: authCallbackGet as Handler },
   '/api/auth/me': { GET: authMeGet as Handler },
