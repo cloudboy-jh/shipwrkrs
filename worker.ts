@@ -49,9 +49,10 @@ function jsonError(message: string, status: number, headers?: HeadersInit) {
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
+    const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
 
-    if (url.pathname.startsWith('/api/')) {
-      const methodHandlers = routes[url.pathname];
+    if (path.startsWith('/api/')) {
+      const methodHandlers = routes[path];
       if (!methodHandlers) {
         return jsonError('Not found', 404);
       }
