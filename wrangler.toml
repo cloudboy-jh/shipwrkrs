@@ -8,12 +8,15 @@ not_found_handling = "single-page-application"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "shipwrkrs-db"
+database_name = "shipwrkrs"
 database_id = "79199a29-cbbe-4a4f-aabc-21c667774f82"
 
-# AI binding removed for local dev - uses API key directly
-# [ai]
-# binding = "AI"
+[ai]
+binding = "AI"
+
+[[artifacts]]
+binding = "ARTIFACTS"
+namespace = "default"
 
 [vars]
 MOCK_MODE = "false"

@@ -1,6 +1,6 @@
 export type Env = {
   DB: D1Database;
-  AI?: Ai;
+  AI: Ai;
   ARTIFACTS?: ArtifactsBinding;
   ANTHROPIC_API_KEY?: string;
   CF_OAUTH_CLIENT_ID?: string;

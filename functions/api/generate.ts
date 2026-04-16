@@ -110,7 +110,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const data = (await resp.json()) as { content?: Array<{ type: string; text?: string }> };
     code = data.content?.find((c) => c.type === 'text')?.text?.trim() ?? '';
   } else {
-    if (!context.env.AI) return badRequest('AI binding not available in local dev. Use premium tier or mock mode.', 503);
     model = '@cf/qwen/qwen2.5-coder-32b-instruct';
     const out = await context.env.AI.run(model, {
       messages: [
