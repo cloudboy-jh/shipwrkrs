@@ -33,7 +33,7 @@ import { useGenerate } from '../composables/useGenerate';
 const router = useRouter();
 const { refresh, isAuthed } = useAuth();
 const { generate } = useGenerate();
-const { description, generatedCode } = useFlowState();
+const { description, generatedCode, scriptName, generatedSecrets, secretValues } = useFlowState();
 
 const errorText = ref('');
 const statusIndex = ref(0);
@@ -71,6 +71,11 @@ onMounted(async () => {
     }
 
     generatedCode.value = res.code;
+    scriptName.value = res.scriptName || scriptName.value;
+    generatedSecrets.value = res.secrets ?? [];
+    secretValues.value = Object.fromEntries(
+      Object.entries(secretValues.value).filter(([name]) => generatedSecrets.value.some((secret) => secret.name === name)),
+    );
     await router.replace('/review');
   } catch (err) {
     errorText.value = err instanceof Error ? err.message : 'Generation failed';

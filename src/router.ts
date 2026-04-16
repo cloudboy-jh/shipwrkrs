@@ -5,6 +5,7 @@ import Examples from './views/Examples.vue';
 import Processing from './views/Processing.vue';
 import Review from './views/Review.vue';
 import History from './views/History.vue';
+import NetworkHelp from './views/NetworkHelp.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -44,6 +45,12 @@ const router = createRouter({
       name: 'history',
       component: History,
       meta: { width: 720, align: 'top', stepLabel: 'History', step: 0 },
+    },
+    {
+      path: '/help/network',
+      name: 'network-help',
+      component: NetworkHelp,
+      meta: { width: 760, align: 'top', stepLabel: 'Help', step: 0 },
     },
   ],
 });

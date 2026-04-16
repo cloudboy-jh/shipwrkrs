@@ -19,6 +19,10 @@
 
             <a :href="item.url" target="_blank" rel="noreferrer" class="deploy-link">{{ item.url }}</a>
 
+            <p v-if="item.secretNames.length > 0" class="secret-line">
+              Secrets: {{ item.secretNames.join(', ') }}
+            </p>
+
             <details class="code-toggle">
               <summary>Show deployed code</summary>
               <pre class="history-code">{{ item.code }}</pre>
@@ -42,6 +46,7 @@ type HistoryItem = {
   url: string;
   status: 'live' | 'deleted';
   code: string;
+  secretNames: string[];
   createdAt: string;
 };
 
@@ -141,6 +146,13 @@ onMounted(async () => {
 
 .deploy-link:hover {
   color: var(--tx);
+}
+
+.secret-line {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tm);
 }
 
 .code-toggle summary {

@@ -5,7 +5,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!session) return badRequest('Unauthorized', 401);
 
   const rows = await context.env.DB.prepare(
-    `SELECT id, script_name, url, status, code, created_at
+    `SELECT id, script_name, url, status, code, secret_names, created_at
      FROM deploy_history
      WHERE user_id = ?1
      ORDER BY created_at DESC
@@ -18,6 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       url: string;
       status: 'live' | 'deleted';
       code: string;
+      secret_names: string | null;
       created_at: number;
     }>();
 
@@ -28,6 +29,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       url: r.url,
       status: r.status,
       code: r.code,
+      secretNames: (() => {
+        try {
+          return r.secret_names ? (JSON.parse(r.secret_names) as string[]) : [];
+        } catch {
+          return [];
+        }
+      })(),
       createdAt: new Date(r.created_at).toISOString(),
     })),
   });

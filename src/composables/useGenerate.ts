@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { api, normalizeWorkerCode } from './api';
+import type { SecretManifestItem } from './useFlowState';
 
 type Tier = 'free' | 'premium';
 
@@ -11,7 +12,13 @@ export function useGenerate() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await api<{ code: string; model: string; remaining: number }>('/api/generate', {
+      const res = await api<{
+        code: string;
+        scriptName: string;
+        secrets: SecretManifestItem[];
+        model: string;
+        remaining: number;
+      }>('/api/generate', {
         method: 'POST',
         body: JSON.stringify({ description, tier }),
       });

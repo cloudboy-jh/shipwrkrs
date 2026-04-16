@@ -266,8 +266,33 @@ export async function cloudflareDeploy(accessToken: string, accountId: string, s
   return data;
 }
 
+export async function cloudflarePutSecret(
+  accessToken: string,
+  accountId: string,
+  scriptName: string,
+  name: string,
+  text: string,
+) {
+  const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}/secrets`;
+  const res = await fetch(endpoint, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name, text, type: 'secret_text' }),
+  });
+  const data = (await res.json()) as {
+    success?: boolean;
+    errors?: Array<{ message: string }>;
+  };
+  if (!res.ok || !data.success) {
+    throw new Error(data.errors?.[0]?.message ?? 'Cloudflare secret update failed');
+  }
+}
+
 export function makeMockWorkerCode(description: string) {
-  return `// ${description}\nexport default {\n  async fetch(request) {\n    const url = new URL(request.url);\n    if (url.pathname === '/health') return new Response('ok');\n    return Response.json({\n      ok: true,\n      message: 'Mock generated worker',\n      description: ${JSON.stringify(description)},\n      timestamp: new Date().toISOString(),\n    });\n  },\n};`;
+  return `// ${description}\nexport default {\n  async fetch(request, env) {\n    const url = new URL(request.url);\n    const webhook = env.DISCORD_WEBHOOK_URL;\n    if (url.pathname === '/health') return new Response('ok');\n    return Response.json({\n      ok: true,\n      message: 'Mock generated worker',\n      description: ${JSON.stringify(description)},\n      hasWebhookSecret: Boolean(webhook),\n      timestamp: new Date().toISOString(),\n    });\n  },\n};`;
 }
 
 export async function logDeploy(
@@ -277,12 +302,13 @@ export async function logDeploy(
   url: string,
   status: 'live' | 'deleted',
   code: string,
+  secretNames: string[] = [],
 ) {
   await env.DB.prepare(
-    `INSERT INTO deploy_history (user_id, script_name, url, status, code, created_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
+    `INSERT INTO deploy_history (user_id, script_name, url, status, code, secret_names, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
   )
-    .bind(userId, scriptName, url, status, code, Date.now())
+    .bind(userId, scriptName, url, status, code, JSON.stringify(secretNames), Date.now())
     .run();
 }
 
@@ -302,4 +328,5 @@ Rules:
 - Use Web Standards APIs (fetch, Request, Response, URL, Headers)
 - If the user mentions KV, R2, D1, or other bindings, include them but note they need manual setup
 - Keep it minimal — no unnecessary dependencies
-- Add a brief comment at the top describing what the worker does`;
+- Add a brief comment at the top describing what the worker does
+- If secrets are needed, reference them from env using uppercase names (example: env.OPENAI_API_KEY)`;

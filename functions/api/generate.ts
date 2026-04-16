@@ -16,6 +16,45 @@ type GenerateBody = {
   tier?: 'free' | 'premium';
 };
 
+type SecretManifestItem = {
+  name: string;
+  label: string;
+  description: string;
+  helpUrl?: string;
+  placeholder?: string;
+  required: boolean;
+};
+
+function slugifyWorkerName(input: string) {
+  const slug = input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+  return (slug || 'shipwrkrs-worker').slice(0, 63);
+}
+
+function toLabel(name: string) {
+  return name
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1) + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function buildSecretManifest(code: string): SecretManifestItem[] {
+  const matches = code.match(/env\.([A-Z_][A-Z0-9_]*)/g) ?? [];
+  const names = Array.from(new Set(matches.map((match) => match.replace('env.', ''))));
+  return names.map((name) => ({
+    name,
+    label: toLabel(name),
+    description: 'Secret value used by this Worker.',
+    placeholder: name.includes('URL') ? 'https://example.com/...' : undefined,
+    required: false,
+  }));
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const session = await requireSession(context).catch(() => null);
   if (!session) return badRequest('Unauthorized', 401);
@@ -37,9 +76,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     await sleep(450);
     await incrementAction(context.env, session.userId, tier === 'premium' ? 'gen_premium' : 'gen_free');
     const code = makeMockWorkerCode(description);
+    const secrets = buildSecretManifest(code);
     const updated = await getUserLimits(context.env, session.userId);
     return json({
       code,
+      scriptName: slugifyWorkerName(description),
+      secrets,
       model: tier === 'premium' ? 'mock-anthropic' : 'mock-workers-ai',
       remaining: tier === 'premium' ? updated.generationsPremiumRemaining : updated.generationsFreeRemaining,
     });
@@ -83,10 +125,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   if (!code) return badRequest('Model returned empty code', 502);
 
+  const secrets = buildSecretManifest(code);
   await incrementAction(context.env, session.userId, tier === 'premium' ? 'gen_premium' : 'gen_free');
   const updated = await getUserLimits(context.env, session.userId);
   return json({
     code,
+    scriptName: slugifyWorkerName(description),
+    secrets,
     model,
     remaining: tier === 'premium' ? updated.generationsPremiumRemaining : updated.generationsFreeRemaining,
   });
