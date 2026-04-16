@@ -52,6 +52,10 @@ const router = createRouter({
       component: NetworkHelp,
       meta: { width: 760, align: 'top', stepLabel: 'Help', step: 0 },
     },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/',
+    },
   ],
 });
 

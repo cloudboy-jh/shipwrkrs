@@ -168,8 +168,17 @@ function openExamples() {
 }
 
 onMounted(async () => {
-    await refresh();
-    if (!isAuthed.value) await router.replace("/");
+    try {
+        await refresh();
+        if (!isAuthed.value) {
+            await router.replace("/");
+            return;
+        }
+    } catch (err) {
+        console.error("Auth refresh failed:", err);
+        await router.replace("/");
+        return;
+    }
 
     if (description.value.trim()) {
         hideIntro();
