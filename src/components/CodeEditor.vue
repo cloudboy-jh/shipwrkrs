@@ -1,13 +1,13 @@
 <template>
-  <div class="code-editor-shell" :class="{ focused: isFocused, expanded: isExpanded }">
+  <div class="code-editor-shell" :class="{ focused: isFocused, expanded: isExpanded, 'read-only': readOnly }">
     <div class="editor-head">
-      <p class="editor-title">Worker code</p>
-      <span class="editor-badge">Live Editor</span>
+      <p class="editor-title">{{ readOnly ? 'Worker code (read-only)' : 'Worker code' }}</p>
+      <span v-if="!readOnly" class="editor-badge">Live Editor</span>
     </div>
     <div class="editor-body">
       <div ref="editorRoot" class="code-editor" />
       <button
-        v-if="showExpandControl && !isExpanded"
+        v-if="showExpandControl && !isExpanded && !readOnly"
         class="expand-btn"
         type="button"
         aria-label="Expand editor"
@@ -16,7 +16,7 @@
         <Maximize2 :size="15" />
       </button>
     </div>
-    <p class="editor-hint">Click to edit code before deploy.</p>
+    <p v-if="!readOnly" class="editor-hint">Click to edit code before deploy.</p>
   </div>
 </template>
 
@@ -25,11 +25,14 @@ import { Maximize2 } from 'lucide-vue-next';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { javascript } from '@codemirror/lang-javascript';
 import { defaultKeymap } from '@codemirror/commands';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Compartment } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-const props = defineProps<{ modelValue: string }>();
+const props = defineProps<{
+  modelValue: string;
+  readOnly?: boolean;
+}>();
 const emit = defineEmits<{
   'update:modelValue': [value: string];
   'expanded-change': [expanded: boolean];
@@ -46,6 +49,8 @@ function expandEditor() {
   emit('expanded-change', true);
 }
 
+const readOnlyCompartment = new Compartment();
+
 onMounted(() => {
   if (!editorRoot.value) return;
   editorView = new EditorView({
@@ -58,6 +63,7 @@ onMounted(() => {
         javascript({ typescript: false }),
         oneDark,
         EditorView.lineWrapping,
+        readOnlyCompartment.of(props.readOnly ? [EditorState.readOnly.of(true)] : []),
         EditorView.updateListener.of((v) => {
           if (v.docChanged) emit('update:modelValue', v.state.doc.toString());
         }),
@@ -224,5 +230,13 @@ onBeforeUnmount(() => {
   font-weight: 500;
   color: var(--tm);
   background: color-mix(in srgb, var(--bg), var(--sf) 38%);
+}
+
+.code-editor-shell.read-only .editor-head {
+  background: color-mix(in srgb, var(--bg), var(--sf) 20%);
+}
+
+.code-editor-shell.read-only :deep(.cm-cursor) {
+  display: none;
 }
 </style>

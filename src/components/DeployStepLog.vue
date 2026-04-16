@@ -10,7 +10,10 @@
           <span class="url-text">{{ deployedUrl }}</span>
           <ExternalLink :size="16" class="url-icon" aria-hidden="true" />
         </a>
-        <button class="deploy-another-link" type="button" @click="$emit('deployAnother')">Deploy another →</button>
+        <div class="success-actions">
+          <button class="deploy-another-link" type="button" @click="$emit('deployAnother')">Deploy another →</button>
+          <CloneSection v-if="scriptName" :script-name="scriptName" :clone-url="cloneUrl" inline />
+        </div>
       </div>
     </Transition>
 
@@ -58,6 +61,7 @@
 import { CheckCircle2, ExternalLink } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import CloneSection from './CloneSection.vue';
 
 type StepState = 'pending' | 'active' | 'done' | 'error';
 type Phase = 'idle' | 'deploying' | 'error' | 'success';
@@ -67,6 +71,8 @@ const props = defineProps<{
   events: Array<{ id: number; time: string; text: string }>;
   phase: Phase;
   deployedUrl: string;
+  scriptName?: string;
+  cloneUrl?: string | null;
 }>();
 
 defineEmits<{
@@ -102,6 +108,14 @@ function stateText(state: StepState) {
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.success-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .success-pop-enter-active,

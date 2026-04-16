@@ -3,6 +3,7 @@ import {
   badRequest,
   cloudflareDeploy,
   cloudflarePutSecret,
+  commitCodeToArtifacts,
   getStoredApiToken,
   getUserLimits,
   incrementAction,
@@ -59,6 +60,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const url = `https://${scriptName}.mock-subdomain.workers.dev`;
     if (!isSecretRetry) {
       await incrementAction(context.env, session.userId, 'deploy');
+      const artifact = await commitCodeToArtifacts(context.env, scriptName, code);
       await logDeploy(
         context.env,
         session.userId,
@@ -67,9 +69,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         'live',
         code,
         secrets.map((secret) => secret.name),
+        artifact?.remote,
+        artifact?.sha,
       );
       const updated = await getUserLimits(context.env, session.userId);
-      return json({ url, scriptName, remaining: updated.deploysRemaining });
+      return json({ url, scriptName, remaining: updated.deploysRemaining, artifactRemote: artifact?.remote, artifactCommitSha: artifact?.sha });
     }
     return json({ url, scriptName, remaining: limits.deploysRemaining });
   }
@@ -116,6 +120,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const url = `https://${scriptName}.workers.dev`;
   if (!isSecretRetry) {
     await incrementAction(context.env, session.userId, 'deploy');
+    const artifact = await commitCodeToArtifacts(context.env, scriptName, code);
     await logDeploy(
       context.env,
       session.userId,
@@ -124,9 +129,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       'live',
       code,
       secrets.map((secret) => secret.name),
+      artifact?.remote,
+      artifact?.sha,
     );
     const updated = await getUserLimits(context.env, session.userId);
-    return json({ url, scriptName, remaining: updated.deploysRemaining });
+    return json({ url, scriptName, remaining: updated.deploysRemaining, artifactRemote: artifact?.remote, artifactCommitSha: artifact?.sha });
   }
   return json({ url, scriptName, remaining: limits.deploysRemaining });
 };

@@ -11,8 +11,9 @@ binding = "DB"
 database_name = "shipwrkrs-db"
 database_id = "79199a29-cbbe-4a4f-aabc-21c667774f82"
 
-[ai]
-binding = "AI"
+# AI binding removed for local dev - uses API key directly
+# [ai]
+# binding = "AI"
 
 [vars]
 MOCK_MODE = "false"

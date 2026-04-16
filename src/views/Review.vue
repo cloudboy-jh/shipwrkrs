@@ -7,7 +7,7 @@
       ]"
     >
       <Transition name="hero-fade">
-        <div v-if="viewState === 'review'" class="hero">
+        <div v-if="viewState === 'review' && showHero" class="hero">
           <h1>Review + <em>Deploy</em></h1>
         </div>
       </Transition>
@@ -34,6 +34,26 @@
             <div class="editor-wrap">
               <CodeEditor v-model="generatedCode" @expanded-change="handleEditorExpandedChange" />
             </div>
+          </div>
+
+          <div v-if="previousCode" class="prompt-block">
+            <div class="diff-toggle-row">
+              <button
+                class="btn-ghost diff-toggle-btn"
+                type="button"
+                @click="showDiff = !showDiff"
+              >
+                <FileCode2 :size="14" />
+                {{ showDiff ? 'Hide diff' : 'Show diff vs previous' }}
+              </button>
+            </div>
+            <DiffViewer
+              v-if="showDiff"
+              :old-code="previousCode"
+              :new-code="generatedCode"
+              old-filename="worker.js (previous)"
+              new-filename="worker.js"
+            />
           </div>
 
           <section class="prompt-block">
@@ -88,6 +108,8 @@
             :events="deployEvents"
             :phase="phase"
             :deployedUrl="deployedUrl || previewUrl"
+            :script-name="scriptName"
+            :clone-url="cloneUrl"
             @deployAnother="deployAnother"
           />
 
@@ -228,8 +250,10 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import CodeEditor from '../components/CodeEditor.vue';
 import DeployStepLog from '../components/DeployStepLog.vue';
+import DiffViewer from '../components/DiffViewer.vue';
 import UiDialog from '../components/ui/Dialog.vue';
 import { useSonner } from '../components/ui/sonner';
+import { api } from '../composables/api';
 import { useAuth } from '../composables/useAuth';
 import { useDeploy } from '../composables/useDeploy';
 import { useFlowState, validWorkerName, type SecretManifestItem } from '../composables/useFlowState';
@@ -247,6 +271,10 @@ const envPaste = ref('');
 const unmatchedEnvKeys = ref<string[]>([]);
 const revealSecrets = ref<Record<string, boolean>>({});
 const failedSecretName = ref('');
+const previousCode = ref<string | null>(null);
+const showDiff = ref(false);
+const cloneUrl = ref<string | null>(null);
+const showHero = ref(true);
 const deployEvents = ref<Array<{ id: number; time: string; text: string }>>([]);
 const deploySteps = ref<Array<{ key: string; label: string; status: StepState; note?: string }>>([
   { key: 'validate', label: 'Validate script', status: 'pending' },
@@ -424,6 +452,36 @@ onMounted(async () => {
     return;
   }
   if (!generatedCode.value.trim()) await router.replace('/describe');
+
+  // Fetch previous code if script name exists
+  if (scriptName.value) {
+    await fetchPreviousCode();
+  }
+
+  // Hide hero after 5 seconds
+  setTimeout(() => {
+    showHero.value = false;
+  }, 5000);
+});
+
+async function fetchPreviousCode() {
+  if (!scriptName.value) return;
+  try {
+    const res = await api<{ hasPrevious: boolean; previousCode: string | null; commitSha?: string }>(
+      `/api/artifacts/diff?scriptName=${encodeURIComponent(scriptName.value)}`
+    );
+    if (res.hasPrevious && res.previousCode) {
+      previousCode.value = res.previousCode;
+    }
+  } catch {
+    // Silently ignore - previous code is optional
+  }
+}
+
+watch(scriptName, async (newName, oldName) => {
+  if (newName && newName !== oldName) {
+    await fetchPreviousCode();
+  }
 });
 
 function getDeploySecrets() {
@@ -477,6 +535,17 @@ async function runDeploy(retrySecret?: string) {
     phase.value = 'success';
     stamp(`Deploy success: ${res.url ?? 'workers.dev'}`);
     pushToast({ title: 'Deploy successful', message: res.url ?? 'Worker is live', variant: 'success' });
+
+    // Fetch clone token after successful deploy
+    try {
+      const tokenRes = await api<{ cloneUrl: string }>('/api/artifacts/token', {
+        method: 'POST',
+        body: JSON.stringify({ scriptName: scriptName.value }),
+      });
+      cloneUrl.value = tokenRes.cloneUrl;
+    } catch {
+      // Silently ignore - clone URL is optional
+    }
   } catch (err) {
     errorText.value = err instanceof Error ? err.message : 'Deploy failed';
     const maybeFailedSecret = typeof (err as { failedSecret?: unknown }).failedSecret === 'string'
@@ -581,6 +650,7 @@ async function deployAnother() {
   transition: opacity 200ms ease;
 }
 
+.hero-fade-enter-from,
 .hero-fade-leave-to {
   opacity: 0;
 }
@@ -965,7 +1035,7 @@ async function deployAnother() {
 }
 
 .deploy-status-line {
-  padding: 10px 20px 2px;
+  padding: 10px 20px;
   display: flex;
   justify-content: center;
 }
@@ -1093,5 +1163,20 @@ async function deployAnother() {
   .secrets-foot .mode-toggle {
     width: 100%;
   }
+}
+
+.diff-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.diff-toggle-btn {
+  height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
 }
 </style>
