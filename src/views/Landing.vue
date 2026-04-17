@@ -18,6 +18,27 @@
           required
         />
 
+        <template v-if="showAccountIdInput">
+          <label class="field-label" for="cf-account">Cloudflare Account ID</label>
+          <input
+            id="cf-account"
+            v-model.trim="accountId"
+            class="text-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Paste account id"
+            required
+          />
+        </template>
+        <button
+          v-else
+          type="button"
+          class="assist-btn"
+          @click="showAccountIdInput = true"
+        >
+          Enter Account ID manually
+        </button>
 
         <button class="btn-primary full signin-btn" :disabled="loading || !tokenAuthEnabled">
           <img
@@ -40,9 +61,9 @@
           <span class="chevron">▾</span>
         </summary>
         <ul>
-          <li>Account · Read</li>
-          <li>Workers Scripts · Edit</li>
-          <li>Workers Scripts · Read (recommended)</li>
+          <li>Account → Account Settings → Read</li>
+          <li>Account → Workers Scripts → Edit</li>
+          <li>Account → Workers Scripts → Read (recommended)</li>
         </ul>
       </details>
 
@@ -65,6 +86,8 @@ import { useAuth } from '../composables/useAuth';
 
 const errorText = ref('');
 const token = ref('');
+const accountId = ref('');
+const showAccountIdInput = ref(false);
 const loading = ref(false);
 const tokenAuthEnabled = ref(true);
 const router = useRouter();
@@ -108,13 +131,24 @@ async function connectToken() {
   }
 
   errorText.value = '';
+  if (showAccountIdInput.value && !accountId.value) {
+    errorText.value = 'Cloudflare Account ID is required when using manual mode.';
+    return;
+  }
   loading.value = true;
+
   try {
-    await saveApiToken(token.value);
+    await saveApiToken(token.value, showAccountIdInput.value ? accountId.value : undefined);
     token.value = '';
+    accountId.value = '';
     await router.replace('/describe');
   } catch (err) {
-    errorText.value = err instanceof Error ? err.message : 'Failed to connect token';
+    const message = err instanceof Error ? err.message : 'Failed to connect token';
+    errorText.value = message;
+    if (message.toLowerCase().includes('unable to resolve account id from token')) {
+      showAccountIdInput.value = true;
+      errorText.value = 'Could not auto-detect account id. Enter Account ID manually and try again.';
+    }
   } finally {
     loading.value = false;
   }
@@ -182,6 +216,23 @@ async function connectToken() {
 
 .text-input:focus {
   outline: none;
+  border-color: var(--o);
+}
+
+.assist-btn {
+  border: 1px dashed var(--bd);
+  background: transparent;
+  color: var(--t2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.assist-btn:hover {
+  color: var(--tx);
   border-color: var(--o);
 }
 
