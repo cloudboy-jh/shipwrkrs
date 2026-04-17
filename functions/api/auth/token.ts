@@ -32,15 +32,24 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const accountId = body?.accountId?.trim() || (await getDefaultAccountId(token));
   if (!accountId) return badRequest('Unable to resolve account id from token');
 
-  await saveUserApiToken(context.env, session.userId, token, accountId);
-
   const nextSession = {
     ...session,
     authMode: 'api_token' as const,
     accountId,
     accessToken: undefined,
   };
-  await ensureUser(context.env, nextSession);
+
+  try {
+    await ensureUser(context.env, nextSession);
+    await saveUserApiToken(context.env, session.userId, token, accountId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes('SQLITE_CONSTRAINT_FOREIGNKEY') || message.includes('FOREIGN KEY constraint failed')) {
+      return badRequest('Failed to persist token user mapping. Please retry once.', 500);
+    }
+    throw err;
+  }
+
   const cookie = await createSessionToken(nextSession, context.env.SESSION_SECRET);
 
   return json(

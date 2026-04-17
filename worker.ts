@@ -79,6 +79,7 @@ export default {
         return withNoStore(response);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Internal server error';
+        console.error(`[api] ${request.method} ${path} -> 500: ${message}`);
         return withNoStore(jsonError(message, 500));
       }
     }

@@ -180,17 +180,24 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     return mockApi<T>(path, init);
   }
 
-  const response = await fetch(path, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+    });
+  } catch (error) {
+    console.error(`[api] network failure ${init?.method ?? 'GET'} ${path}`);
+    throw error;
+  }
 
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown> & { error?: string };
   if (!response.ok) {
+    console.error(`[api] ${response.status} ${init?.method ?? 'GET'} ${path}: ${String(payload.error ?? 'request failed')}`);
     const err = new Error(payload.error ?? `Request failed (${response.status})`) as Error & {
       status: number;
       payload: Record<string, unknown>;
