@@ -2,11 +2,11 @@ import { Env, isMockMode, json, requireSession } from '../_lib';
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const session = await requireSession(context).catch(() => null);
-  const oauthEnabled = Boolean(
-    (context.env.CF_OAUTH_CLIENT_ID && context.env.CF_OAUTH_CLIENT_SECRET) || context.env.CF_DEPLOY_API_TOKEN,
-  );
+  const tokenAuthEnabled = Boolean(context.env.SESSION_SECRET && context.env.AUTH_ENCRYPTION_KEY);
+
   return json({
-    oauthEnabled,
+    tokenAuthEnabled,
+    oauthEnabled: false,
     mockMode: isMockMode(context.env),
     user: session
       ? {
@@ -14,7 +14,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           email: session.email ?? null,
           name: session.name ?? null,
           accountId: session.accountId ?? null,
-          authMode: session.authMode === 'mock' ? 'oauth' : session.authMode,
+          authMode: session.authMode === 'mock' ? 'api_token' : session.authMode,
         }
       : null,
   });

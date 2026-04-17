@@ -15,7 +15,7 @@ No CLI workflow is required for end users.
 
 ## Core user flow
 
-1. User signs in with Cloudflare.
+1. User connects a Cloudflare API token.
 2. User writes a Worker description.
 3. User selects model tier (free or premium).
 4. App generates Worker code.
@@ -27,9 +27,10 @@ No CLI workflow is required for end users.
 
 ### Authentication
 
-- Primary sign-in path is Cloudflare sign-in.
-- Auth session is cookie-based.
-- Signed-in user identity is available in header/account UI and API routes.
+- Primary auth path is user-provided Cloudflare API token.
+- Auth session is cookie-based after token connect.
+- API token is encrypted at rest in D1 (`user_tokens`).
+- Connected user/session identity is available in account UI and API routes.
 
 ### Generation
 
@@ -77,7 +78,7 @@ See `migrations/` folder for full schema.
 
 Key routes under `functions/api`:
 
-- Auth: `auth/login`, `auth/callback`, `auth/me`, `auth/logout`
+- Auth: `auth/token`, `auth/me`, `auth/logout`
 - Generation: `generate`
 - Deploy: `deploy`
 - History: `history`
@@ -109,7 +110,7 @@ bun run dev:api      # API only
 bun run dev:frontend # Frontend only
 ```
 
-Note: AI binding is configured but may have limitations in local dev. Use mock mode or premium tier with Anthropic key for testing generation.
+Note: if Wrangler remote preview is blocked by Cloudflare Access in your account, use `bun run dev:frontend` and the landing-page UI mock toggle for frontend e2e testing.
 
 ### Build and deploy
 

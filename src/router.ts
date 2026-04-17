@@ -14,7 +14,7 @@ const router = createRouter({
       path: '/',
       name: 'landing',
       component: Landing,
-      meta: { width: 480, align: 'center', stepLabel: 'Sign in', step: 0 },
+      meta: { width: 480, align: 'center', stepLabel: 'Connect', step: 0 },
     },
     {
       path: '/describe',

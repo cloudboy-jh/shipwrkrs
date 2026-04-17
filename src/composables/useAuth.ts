@@ -20,13 +20,13 @@ export function useAuth() {
     loading.value = true;
     authError.value = null;
     try {
-      const data = await api<{ user: AuthUser | null; oauthEnabled: boolean }>('/api/auth/me');
+      const data = await api<{ user: AuthUser | null; tokenAuthEnabled?: boolean; oauthEnabled?: boolean }>('/api/auth/me');
       user.value = data.user;
       return data;
     } catch (err) {
       user.value = null;
       authError.value = err instanceof Error ? err.message : 'Auth check failed';
-      return { user: null, oauthEnabled: false };
+      return { user: null, tokenAuthEnabled: false, oauthEnabled: false };
     } finally {
       loading.value = false;
     }

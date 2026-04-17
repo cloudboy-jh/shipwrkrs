@@ -95,6 +95,7 @@ async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (path === '/api/auth/me') {
     return {
+      tokenAuthEnabled: true,
       oauthEnabled: false,
       mockMode: true,
       user: {
@@ -102,7 +103,7 @@ async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
         email: 'mock@shipwrkrs.dev',
         name: 'Mock User',
         accountId: 'mock-account',
-        authMode: 'oauth',
+        authMode: 'api_token',
       },
     } as T;
   }

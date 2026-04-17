@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"bunx wrangler dev --port 8788\" \"bunx vite\" --names \"api,vite\" --prefix-colors \"cyan,green\"",
-    "dev:frontend": "bunx vite",
+    "dev:frontend": "VITE_FRONTEND_ONLY=true bunx vite",
     "dev:api": "bunx wrangler dev",
     "build": "bunx vite build",
     "preview": "bunx vite preview",

@@ -15,7 +15,7 @@ shipwrkrs.dev — Generate and deploy Cloudflare Workers from natural language p
 
 ```
 functions/api/      # API routes
-  auth/            # OAuth flows
+  auth/            # Session + API token connect flows
   _lib.ts          # Shared utilities
 checks/            # Cloudflare Check files (if any)
 migrations/        # D1 SQL migrations

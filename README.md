@@ -6,7 +6,7 @@ Describe a Worker in plain English, generate code, review it, and deploy from on
 
 ## What this app does
 
-- Sign in with Cloudflare
+- Connect your Cloudflare account with an API token
 - Generate Worker code from a prompt (free tier: Workers AI, premium: Anthropic)
 - Edit code in a live CodeMirror editor
 - Deploy to `workers.dev`
@@ -39,13 +39,15 @@ This starts:
 
 Then open http://localhost:5173
 
+Note: if Wrangler remote preview is blocked by Cloudflare Access in your account, use frontend-only mode (`bun run dev:frontend`) for UI e2e testing.
+
 ### Alternative: run separately
 
 ```bash
 # Terminal 1: API only
 bun run dev:api
 
-# Terminal 2: Frontend only
+# Terminal 2: Frontend only (sets VITE_FRONTEND_ONLY=true)
 bun run dev:frontend
 ```
 
@@ -72,15 +74,15 @@ Required:
 - `SESSION_SECRET`
 - `AUTH_ENCRYPTION_KEY` (base64url 32-byte key)
 
-Choose one auth path:
+Auth model:
 
-- OAuth flow:
-  - `CF_OAUTH_CLIENT_ID`
-  - `CF_OAUTH_CLIENT_SECRET`
-  - `CF_OAUTH_REDIRECT_URI`
-- Server token fallback:
-  - `CF_DEPLOY_API_TOKEN`
-  - `CF_DEPLOY_ACCOUNT_ID` (optional, auto-resolved when possible)
+- User-provided Cloudflare API token (recommended):
+  - Users paste token once in the app
+  - Token is encrypted at rest in D1
+
+Optional server fallback (single-owner mode):
+- `CF_DEPLOY_API_TOKEN`
+- `CF_DEPLOY_ACCOUNT_ID` (optional, auto-resolved when possible)
 
 Optional:
 
@@ -95,7 +97,9 @@ Mock mode is controlled in `wrangler.toml`:
 MOCK_MODE = "false"
 ```
 
-Set it to `"true"` to test full UI flow with mock auth/generate/deploy responses.
+Set it to `"true"` to test full API mock behavior.
+
+For frontend-only testing without API, use `bun run dev:frontend` and enable the UI mock toggle on the landing page.
 
 ## Deploy
 
@@ -114,7 +118,7 @@ wrangler deploy
 
 ```
 functions/api/        # API routes (Cloudflare Pages Functions)
-  auth/             # Login, callback, logout, me
+  auth/             # Session + token connect + logout + me
   generate.ts       # AI code generation
   deploy.ts         # Worker deployment
   history.ts        # Deploy history
