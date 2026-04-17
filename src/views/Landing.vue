@@ -30,11 +30,21 @@
         </button>
       </form>
 
-      <p class="meta-line">We encrypt your token and only use it for deploy actions you initiate.</p>
       <p class="meta-line">
         Need a token?
         <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noreferrer">Create one in Cloudflare</a>
       </p>
+      <details class="scope-details">
+        <summary>
+          Required scopes
+          <span class="chevron">▾</span>
+        </summary>
+        <ul>
+          <li>Account · Read</li>
+          <li>Workers Scripts · Edit</li>
+          <li>Workers Scripts · Read (recommended)</li>
+        </ul>
+      </details>
 
       <div v-if="frontendOnly" class="dev-toggle-row">
         <button class="dev-toggle" type="button" @click="toggleFrontendMock">
@@ -229,6 +239,42 @@ async function connectToken() {
 
 .meta-line a {
   color: var(--t2);
+}
+
+.scope-details {
+  margin: 0 auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t2);
+}
+
+.scope-details summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scope-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.chevron {
+  transition: transform 120ms ease;
+}
+
+.scope-details[open] .chevron {
+  transform: rotate(180deg);
+}
+
+.scope-details ul {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  color: var(--tm);
+  display: grid;
+  gap: 4px;
 }
 
 .dev-toggle-row {
