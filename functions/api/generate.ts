@@ -25,6 +25,12 @@ type SecretManifestItem = {
   required: boolean;
 };
 
+type GenerationIssue =
+  | 'non_code_wrapper_removed'
+  | 'invalid_worker_shape'
+  | 'non_js_content_detected'
+  | 'repair_pass_applied';
+
 function slugifyWorkerName(input: string) {
   const slug = input
     .toLowerCase()
@@ -53,6 +59,82 @@ function buildSecretManifest(code: string): SecretManifestItem[] {
     placeholder: name.includes('URL') ? 'https://example.com/...' : undefined,
     required: false,
   }));
+}
+
+function normalizeGeneratedCode(raw: string): { code: string; wrapperRemoved: boolean } {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('```')) return { code: trimmed, wrapperRemoved: false };
+
+  const blocks = Array.from(trimmed.matchAll(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g));
+  if (!blocks.length) {
+    return { code: trimmed.replace(/```/g, '').trim(), wrapperRemoved: true };
+  }
+
+  const preferred = blocks.find((b) => /^(js|javascript|ts|typescript)$/i.test((b[1] ?? '').trim())) ?? blocks[0];
+  return { code: (preferred[2] ?? '').trim(), wrapperRemoved: true };
+}
+
+function validateWorkerCode(code: string): GenerationIssue[] {
+  const issues: GenerationIssue[] = [];
+  if (!/export\s+default\s*\{/.test(code) || !/fetch\s*\(/.test(code)) {
+    issues.push('invalid_worker_shape');
+  }
+
+  const suspiciousToml = /^\s*\[[^\]]+\]/m.test(code) || /^\s*name\s*=\s*['"]/m.test(code);
+  const suspiciousWrapper = code.includes('```') || code.includes('wrangler.toml');
+  if (suspiciousToml || suspiciousWrapper) {
+    issues.push('non_js_content_detected');
+  }
+
+  return issues;
+}
+
+function issueLabel(issue: GenerationIssue): string {
+  if (issue === 'invalid_worker_shape') return 'Code must export default Worker with fetch handler.';
+  if (issue === 'non_js_content_detected') return 'Output contains non-JavaScript content.';
+  if (issue === 'non_code_wrapper_removed') return 'Removed markdown/non-code wrapper from model output.';
+  return 'Applied automatic code repair pass.';
+}
+
+async function runModel(context: { env: Env }, tier: 'free' | 'premium', userContent: string) {
+  if (tier === 'premium') {
+    if (!context.env.ANTHROPIC_API_KEY) throw new Error('Premium model unavailable');
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': context.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1800,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userContent }],
+      }),
+    });
+    if (!resp.ok) throw new Error('Premium generation failed');
+    const data = (await resp.json()) as { content?: Array<{ type: string; text?: string }> };
+    return {
+      model: 'claude-sonnet',
+      code: data.content?.find((c) => c.type === 'text')?.text?.trim() ?? '',
+    };
+  }
+
+  const model = '@cf/qwen/qwen2.5-coder-32b-instruct';
+  const out = await context.env.AI.run(model, {
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userContent },
+    ],
+    max_tokens: 1800,
+    temperature: 0.2,
+  });
+  const response = out as { response?: string };
+  return {
+    model,
+    code: response.response?.trim() ?? '',
+  };
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -87,43 +169,47 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
   }
 
-  let code = '';
-  let model = '';
-  if (tier === 'premium') {
-    if (!context.env.ANTHROPIC_API_KEY) return badRequest('Premium model unavailable', 503);
-    model = 'claude-sonnet';
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': context.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1800,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: description }],
-      }),
-    });
-    if (!resp.ok) return badRequest('Premium generation failed', 502);
-    const data = (await resp.json()) as { content?: Array<{ type: string; text?: string }> };
-    code = data.content?.find((c) => c.type === 'text')?.text?.trim() ?? '';
-  } else {
-    model = '@cf/qwen/qwen2.5-coder-32b-instruct';
-    const out = await context.env.AI.run(model, {
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: description },
-      ],
-      max_tokens: 1800,
-      temperature: 0.2,
-    });
-    const response = out as { response?: string };
-    code = response.response?.trim() ?? '';
+  let generated;
+  try {
+    generated = await runModel(context, tier, description);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Generation failed';
+    if (message === 'Premium model unavailable') return badRequest(message, 503);
+    return badRequest(message, 502);
   }
 
-  if (!code) return badRequest('Model returned empty code', 502);
+  if (!generated.code) return badRequest('Model returned empty code', 502);
+
+  const generationIssues: GenerationIssue[] = [];
+  const normalized = normalizeGeneratedCode(generated.code);
+  let code = normalized.code;
+  if (normalized.wrapperRemoved) generationIssues.push('non_code_wrapper_removed');
+
+  let issues = validateWorkerCode(code);
+  if (issues.length > 0) {
+    const repairPrompt = [
+      `User intent: ${description}`,
+      `Repair these issues: ${issues.map(issueLabel).join(' ')}`,
+      'Return only valid Cloudflare Worker JavaScript ES module code. No markdown. No TOML. No explanation.',
+      'Current code:',
+      code,
+    ].join('\n\n');
+
+    try {
+      const repaired = await runModel(context, tier, repairPrompt);
+      const repairedNormalized = normalizeGeneratedCode(repaired.code);
+      code = repairedNormalized.code;
+      issues = validateWorkerCode(code);
+      generationIssues.push('repair_pass_applied');
+      if (repairedNormalized.wrapperRemoved) generationIssues.push('non_code_wrapper_removed');
+    } catch {
+      // keep original validation failure path below
+    }
+  }
+
+  if (issues.length > 0) {
+    return badRequest(`Generation failed validation: ${issues.map(issueLabel).join(' ')}`, 502);
+  }
 
   const secrets = buildSecretManifest(code);
   await incrementAction(context.env, session.userId, tier === 'premium' ? 'gen_premium' : 'gen_free');
@@ -132,7 +218,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     code,
     scriptName: slugifyWorkerName(description),
     secrets,
-    model,
+    model: generated.model,
+    generationChips: Array.from(new Set(generationIssues)),
     remaining: tier === 'premium' ? updated.generationsPremiumRemaining : updated.generationsFreeRemaining,
   });
 };
