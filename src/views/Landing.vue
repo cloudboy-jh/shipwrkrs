@@ -54,6 +54,7 @@
           <li>Account → Account Settings → Read</li>
           <li>Account → Workers Scripts → Edit</li>
           <li>Account → Workers Scripts → Read (recommended)</li>
+          <li>User → User Details → Read (optional, for email/profile)</li>
         </ul>
       </details>
 
