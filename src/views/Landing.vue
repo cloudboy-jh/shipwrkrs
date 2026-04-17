@@ -18,28 +18,17 @@
           required
         />
 
-        <template v-if="showAccountIdInput">
-          <label class="field-label" for="cf-account">Cloudflare Account ID</label>
-          <input
-            id="cf-account"
-            v-model.trim="accountId"
-            class="text-input"
-            type="text"
-            autocomplete="off"
-            spellcheck="false"
-            placeholder="Paste account id"
-            required
-          />
-        </template>
-        <button
-          v-else
-          type="button"
-          class="assist-btn"
-          @click="showAccountIdInput = true"
-        >
-          Enter Account ID manually
-        </button>
-
+        <label class="field-label" for="cf-account">Cloudflare Account ID</label>
+        <input
+          id="cf-account"
+          v-model.trim="accountId"
+          class="text-input"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Paste account id"
+          required
+        />
         <button class="btn-primary full signin-btn" :disabled="loading || !tokenAuthEnabled">
           <img
             class="signin-icon"
@@ -55,6 +44,7 @@
         Need a token?
         <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noreferrer">Create one in Cloudflare</a>
       </p>
+      <p class="meta-line">Account ID: Cloudflare dashboard → Account Home → right sidebar.</p>
       <details class="scope-details">
         <summary>
           Required scopes
@@ -87,7 +77,6 @@ import { useAuth } from '../composables/useAuth';
 const errorText = ref('');
 const token = ref('');
 const accountId = ref('');
-const showAccountIdInput = ref(false);
 const loading = ref(false);
 const tokenAuthEnabled = ref(true);
 const router = useRouter();
@@ -131,24 +120,23 @@ async function connectToken() {
   }
 
   errorText.value = '';
-  if (showAccountIdInput.value && !accountId.value) {
-    errorText.value = 'Cloudflare Account ID is required when using manual mode.';
+  if (!accountId.value) {
+    errorText.value = 'Cloudflare Account ID is required.';
+    return;
+  }
+  if (!/^[a-f0-9]{32}$/i.test(accountId.value)) {
+    errorText.value = 'Cloudflare Account ID must be a 32-character hex value.';
     return;
   }
   loading.value = true;
 
   try {
-    await saveApiToken(token.value, showAccountIdInput.value ? accountId.value : undefined);
+    await saveApiToken(token.value, accountId.value);
     token.value = '';
     accountId.value = '';
     await router.replace('/describe');
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to connect token';
-    errorText.value = message;
-    if (message.toLowerCase().includes('unable to resolve account id from token')) {
-      showAccountIdInput.value = true;
-      errorText.value = 'Could not auto-detect account id. Enter Account ID manually and try again.';
-    }
+    errorText.value = err instanceof Error ? err.message : 'Failed to connect token';
   } finally {
     loading.value = false;
   }
@@ -219,22 +207,6 @@ async function connectToken() {
   border-color: var(--o);
 }
 
-.assist-btn {
-  border: 1px dashed var(--bd);
-  background: transparent;
-  color: var(--t2);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.assist-btn:hover {
-  color: var(--tx);
-  border-color: var(--o);
-}
 
 .full {
   width: 100%;

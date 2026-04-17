@@ -3,7 +3,6 @@ import {
   badRequest,
   createSessionToken,
   ensureUser,
-  getDefaultAccountId,
   json,
   requireSession,
   saveUserApiToken,
@@ -29,8 +28,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const token = body?.token?.trim();
   if (!token) return badRequest('token is required');
 
-  const accountId = body?.accountId?.trim() || (await getDefaultAccountId(token));
-  if (!accountId) return badRequest('Unable to resolve account id from token');
+  const accountId = body?.accountId?.trim();
+  if (!accountId) return badRequest('accountId is required');
 
   const nextSession = {
     ...session,
