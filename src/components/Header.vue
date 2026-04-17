@@ -58,7 +58,7 @@
       <div class="dialog-head">
         <div>
           <h3>Account</h3>
-          <p class="dialog-sub">Signed in with Cloudflare</p>
+          <p class="dialog-sub">{{ authConnectionLabel }}</p>
         </div>
         <button class="icon-close" type="button" aria-label="Close account modal" @click="accountOpen = false">
           <X :size="16" />
@@ -68,8 +68,8 @@
       <div class="identity-row">
         <div class="identity-avatar">{{ userInitials }}</div>
         <div class="identity-meta">
-          <strong class="account-name">{{ user?.name || 'Cloudflare User' }}</strong>
-          <p class="account-value">{{ user?.email || 'No email on profile' }}</p>
+          <strong class="account-name">{{ user?.name || 'Connected account' }}</strong>
+          <p class="account-value">{{ user?.email || 'Email unavailable for this token' }}</p>
         </div>
         <span class="account-badge">Cloudflare</span>
       </div>
@@ -128,6 +128,10 @@ const userInitials = computed(() => {
   const fallback = user.value?.email?.charAt(0)?.toUpperCase();
   return fallback || '?';
 });
+
+const authConnectionLabel = computed(() =>
+  user.value?.authMode === 'api_token' ? 'Connected via Cloudflare API token' : 'Signed in with Cloudflare',
+);
 
 function applyTheme(mode: 'light' | 'dark') {
   document.documentElement.setAttribute('data-theme', mode);

@@ -248,13 +248,21 @@ export async function getDefaultAccountId(accessToken: string): Promise<string |
 
 export async function cloudflareDeploy(accessToken: string, accountId: string, scriptName: string, code: string) {
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`;
+
+  const form = new FormData();
+  const metadata = {
+    main_module: 'worker.mjs',
+    compatibility_date: '2026-04-08',
+  };
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('worker.mjs', new Blob([code], { type: 'application/javascript+module' }), 'worker.mjs');
+
   const res = await fetch(endpoint, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/javascript',
     },
-    body: code,
+    body: form,
   });
   const data = (await res.json()) as {
     success?: boolean;
