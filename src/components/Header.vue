@@ -319,7 +319,7 @@ async function copyAccountId() {
 }
 
 .account-dialog {
-  width: min(460px, calc(100vw - 28px));
+  width: min(560px, calc(100vw - 28px));
   margin-inline: auto;
   gap: 12px;
 }
@@ -388,6 +388,7 @@ async function copyAccountId() {
   font-weight: 600;
   color: var(--tx);
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .account-id-row {
