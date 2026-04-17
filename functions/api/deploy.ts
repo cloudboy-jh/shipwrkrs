@@ -74,16 +74,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return json({ url, scriptName, remaining: limits.deploysRemaining });
   }
 
-  let accessToken = session.accessToken;
-  let accountId = session.accountId;
+  const stored = await getStoredApiToken(context.env, session.userId);
+  const accessToken = stored?.token ?? session.accessToken;
+  const accountId = stored?.accountId ?? session.accountId;
+  const tokenSource = stored?.token ? 'stored' : session.accessToken ? 'session' : 'none';
 
-  if (!accessToken || session.authMode === 'api_token') {
-    const stored = await getStoredApiToken(context.env, session.userId);
-    accessToken = stored?.token;
-    accountId = stored?.accountId ?? accountId;
-  }
-  if (!accessToken) return badRequest('No deploy token available. Re-auth or set token once.', 401);
+  if (!accessToken) return badRequest('No deploy token available. Reconnect your token and try again.', 401);
   if (!accountId) return badRequest('Account ID unavailable', 400);
+
+  console.info(
+    `[deploy] tokenSource=${tokenSource} user=${session.userId} account=...${accountId.slice(-6)} script=${scriptName}`,
+  );
 
   if (!retrySecretName) {
     await cloudflareDeploy(accessToken, accountId, scriptName, code);
