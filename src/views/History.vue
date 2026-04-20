@@ -17,7 +17,10 @@
               <span>{{ new Date(item.createdAt).toLocaleString() }}</span>
             </div>
 
-            <a :href="item.url" target="_blank" rel="noreferrer" class="deploy-link">{{ item.url }}</a>
+            <a :href="dashboardUrl(item.scriptName)" target="_blank" rel="noreferrer" class="deploy-link">
+              Open in Cloudflare Dashboard
+            </a>
+            <p class="live-url">{{ item.url }}</p>
 
             <p v-if="item.secretNames.length > 0" class="secret-line">
               Secrets: {{ item.secretNames.join(', ') }}
@@ -54,7 +57,13 @@ const history = ref<HistoryItem[]>([]);
 const loading = ref(true);
 const errorText = ref('');
 const router = useRouter();
-const { refresh, isAuthed } = useAuth();
+const { refresh, isAuthed, user } = useAuth();
+
+function dashboardUrl(scriptName: string) {
+  const accountId = user.value?.accountId?.trim();
+  if (accountId) return `https://dash.cloudflare.com/${accountId}/workers/services/view/${scriptName}/production`;
+  return 'https://dash.cloudflare.com';
+}
 
 onMounted(async () => {
   await refresh();
@@ -141,6 +150,13 @@ onMounted(async () => {
   font-weight: 600;
   color: var(--t2);
   text-decoration: none;
+}
+
+.live-url {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tm);
   word-break: break-all;
 }
 

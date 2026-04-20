@@ -2,135 +2,60 @@
 
 ![shipwrkrs banner](./shipwrkrs-readme-logo.png)
 
-Describe a Worker in plain English, generate code, review it, and deploy from one app.
+Generate and deploy Cloudflare Workers from plain English.
 
-## What this app does
+## What you can do
 
-- Connect your Cloudflare account with an API token
-- Generate Worker code from a prompt (free tier: Workers AI, premium: Anthropic)
-- Edit code in a live CodeMirror editor
-- Deploy to `workers.dev`
+- Describe what you want in normal language
+- Generate Worker code instantly
+- Review and edit code before deploy
+- Deploy to your Cloudflare account
+- Open each Worker directly in Cloudflare dashboard
 - Track deploy history
 
-## Stack
+## How it works
 
-- Vue 3 + Vite + Bun frontend
-- Single Cloudflare Worker serving UI + API
-- Cloudflare D1 for users, limits, and deploy history
-- Workers AI (free tier) + optional Anthropic key (premium tier)
+1. Connect your Cloudflare account with an API token + account ID
+2. Describe the Worker you want
+3. Review/edit generated code
+4. Deploy
+5. Use **Open in Cloudflare Dashboard** to manage Domains & Routes
 
-## Quick start (local)
+## Cloudflare token permissions
 
-1. Install dependencies
+Minimum recommended permissions:
 
-```bash
-bun install
-```
+- Account → Account Settings → Read
+- Account → Workers Scripts → Edit
+- Account → Workers Scripts → Read (recommended)
+- User → User Details → Read (optional, profile/email)
 
-2. Run both frontend and API dev servers
+If you only grant less than this, deploys can fail.
 
-```bash
-bun run dev
-```
+## Important note on URLs
 
-This starts:
-- Wrangler dev server on port 8788 (API)
-- Vite dev server on port 5173 (frontend with proxy)
+After deploy, shipwrkrs gives you:
 
-Then open http://localhost:5173
+- A **Cloudflare dashboard link** (primary action)
+- A **live URL** (when available)
 
-Note: if Wrangler remote preview is blocked by Cloudflare Access in your account, use frontend-only mode (`bun run dev:frontend`) for UI e2e testing.
+Use the dashboard link to confirm Workers domain/route state if a preview URL shows inactive.
 
-### Alternative: run separately
+## Pricing/model behavior
 
-```bash
-# Terminal 1: API only
-bun run dev:api
+- Free generation: Workers AI
+- Premium generation: Anthropic (when enabled)
 
-# Terminal 2: Frontend only (sets VITE_FRONTEND_ONLY=true)
-bun run dev:frontend
-```
+## Security
 
-## Database setup
+- API tokens are encrypted at rest
+- Secrets are sent to Cloudflare during deploy
+- Secrets are not stored as plaintext in shipwrkrs
 
-Apply local migrations:
+## Need help?
 
-```bash
-bun run db:migrate
-```
+If deploy fails, re-check:
 
-Apply remote migrations (before production deploy):
-
-```bash
-wrangler d1 migrations apply shipwrkrs-db --remote
-```
-
-## Configuration
-
-Set these secrets/vars in your Worker environment.
-
-Required:
-
-- `SESSION_SECRET`
-- `AUTH_ENCRYPTION_KEY` (base64url 32-byte key)
-
-Auth model:
-
-- User-provided Cloudflare API token (recommended):
-  - Users paste token once in the app
-  - Token is encrypted at rest in D1
-
-Optional server fallback (single-owner mode):
-- `CF_DEPLOY_API_TOKEN`
-- `CF_DEPLOY_ACCOUNT_ID` (optional, auto-resolved when possible)
-
-Optional:
-
-- `ANTHROPIC_API_KEY` (premium generation tier)
-
-## Mock mode
-
-Mock mode is controlled in `wrangler.toml`:
-
-```toml
-[vars]
-MOCK_MODE = "false"
-```
-
-Set it to `"true"` to test full API mock behavior.
-
-For frontend-only testing without API, use `bun run dev:frontend` and enable the UI mock toggle on the landing page.
-
-## Deploy
-
-```bash
-bun run deploy
-```
-
-Equivalent manual deploy:
-
-```bash
-bun run build
-wrangler deploy
-```
-
-## Project structure
-
-```
-functions/api/        # API routes (Cloudflare Pages Functions)
-  auth/             # Session + token connect + logout + me
-  generate.ts       # AI code generation
-  deploy.ts         # Worker deployment
-  history.ts        # Deploy history
-  limits.ts         # Usage limits
-src/                  # Vue frontend
-  components/       # UI components
-    CodeEditor.vue      # CodeMirror editor
-  views/            # Page views
-    Describe.vue    # Prompt input
-    Review.vue      # Code review + deploy
-    History.vue     # Deploy history
-migrations/           # D1 SQL migrations
-  0001_init.sql
-  0002_deploy_secret_names.sql
-```
+- token permissions
+- account ID
+- Worker name format (`a-z`, `0-9`, `-`)

@@ -85,14 +85,15 @@ onMounted(() => {
           '.cm-scroller': {
             fontFamily: 'var(--mono)',
             lineHeight: '1.55',
-            paddingRight: '10px',
+            paddingRight: '22px',
+            paddingBottom: '44px',
           },
           '.cm-content': {
-            padding: '12px 12px 12px 0',
+            padding: '12px 22px 12px 0',
           },
           '.cm-line': {
             paddingLeft: '8px',
-            paddingRight: '12px',
+            paddingRight: '20px',
           },
           '.cm-gutters': {
             backgroundColor: 'color-mix(in srgb, var(--bg), var(--sf) 35%)',

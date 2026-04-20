@@ -16,6 +16,8 @@ const deployedUrl = ref<string | null>(null);
 const generatedSecrets = ref<SecretManifestItem[]>([]);
 const secretValues = ref<Record<string, string>>({});
 
+const AUTO_SCRIPT_NAME_MAX = 32;
+
 export function validWorkerName(input: string) {
   return /^[a-z0-9-]{1,63}$/.test(input);
 }
@@ -27,7 +29,7 @@ export function slugifyWorkerName(input: string) {
     .trim()
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
-  return (slug || 'shipwrkrs-worker').slice(0, 63);
+  return (slug || 'shipwrkrs-worker').slice(0, AUTO_SCRIPT_NAME_MAX);
 }
 
 export function useFlowState() {

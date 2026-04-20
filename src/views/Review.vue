@@ -39,8 +39,11 @@
           <section class="prompt-block">
             <div class="toolbar toolbar-grid">
               <div class="toolbar-main">
-                <div class="deploy-url-box" :title="previewUrl">
-                  <p class="deploy-preview">{{ previewUrl }}</p>
+                <div class="deploy-url-box" :title="dashboardUrl">
+                  <a class="deploy-dashboard-link" :href="dashboardUrl" target="_blank" rel="noreferrer">
+                    <p class="deploy-preview">Open in Cloudflare Dashboard</p>
+                    <ExternalLink :size="14" />
+                  </a>
                 </div>
                 <div class="toolbar-actions toolbar-actions-right">
                   <button class="btn-ghost action-btn" :disabled="loading" @click="goToDescribe">
@@ -87,7 +90,8 @@
             :steps="deploySteps"
             :events="deployEvents"
             :phase="phase"
-            :deployedUrl="deployedUrl || previewUrl"
+            :dashboardUrl="dashboardUrl"
+            :liveUrl="deployedUrl || previewUrl"
             @deployAnother="deployAnother"
           />
 
@@ -223,7 +227,7 @@
 </template>
 
 <script setup lang="ts">
-import { AlertTriangle, CheckCircle2, Eye, EyeOff, KeyRound, X } from 'lucide-vue-next';
+import { AlertTriangle, CheckCircle2, ExternalLink, Eye, EyeOff, KeyRound, X } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import CodeEditor from '../components/CodeEditor.vue';
@@ -261,10 +265,19 @@ const deploySteps = ref<Array<{ key: string; label: string; status: StepState; n
 const router = useRouter();
 const { generatedCode, scriptName, deployedUrl, generatedSecrets, secretValues } = useFlowState();
 const { loading, deploy } = useDeploy();
-const { refresh, isAuthed } = useAuth();
+const { refresh, isAuthed, user } = useAuth();
 const { pushToast } = useSonner();
 
 const previewUrl = computed(() => `https://${scriptName.value || 'worker-name'}.workers.dev`);
+const dashboardUrl = computed(() => {
+  const accountId = user.value?.accountId?.trim();
+  const name = scriptName.value.trim();
+  if (accountId && name) {
+    return `https://dash.cloudflare.com/${accountId}/workers/services/view/${name}/production`;
+  }
+  if (accountId) return `https://dash.cloudflare.com/${accountId}/workers`;
+  return 'https://dash.cloudflare.com';
+});
 const isScriptNameValid = computed(() => validWorkerName(scriptName.value));
 const viewState = computed<'review' | 'deploy'>(() => (phase.value === 'idle' ? 'review' : 'deploy'));
 
@@ -964,6 +977,20 @@ async function deployAnother() {
   border: 1px solid var(--bd);
   border-radius: 10px;
   background: color-mix(in srgb, var(--bg), var(--sf) 35%);
+}
+
+.deploy-dashboard-link {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--t2);
+}
+
+.deploy-dashboard-link:hover {
+  color: var(--tx);
 }
 
 .toolbar-actions {

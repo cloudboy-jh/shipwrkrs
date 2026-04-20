@@ -29,6 +29,7 @@ type MockStore = {
 const MOCK_FLAG = 'shipwrkrs_ui_mock';
 const MOCK_DB = 'shipwrkrs_ui_mock_db';
 const MOCK_UNLIMITED = 9999;
+const AUTO_SCRIPT_NAME_MAX = 32;
 
 function getMockStore(): MockStore {
   const raw = localStorage.getItem(MOCK_DB);
@@ -138,7 +139,7 @@ async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
         .trim()
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
-        .slice(0, 63),
+        .slice(0, AUTO_SCRIPT_NAME_MAX),
       secrets: detectSecrets(code),
       model: tier === 'premium' ? 'mock-anthropic' : 'mock-workers-ai',
       remaining: MOCK_UNLIMITED,

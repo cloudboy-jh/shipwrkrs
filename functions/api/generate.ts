@@ -31,6 +31,8 @@ type GenerationIssue =
   | 'non_js_content_detected'
   | 'repair_pass_applied';
 
+const AUTO_SCRIPT_NAME_MAX = 32;
+
 function slugifyWorkerName(input: string) {
   const slug = input
     .toLowerCase()
@@ -38,7 +40,7 @@ function slugifyWorkerName(input: string) {
     .trim()
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
-  return (slug || 'shipwrkrs-worker').slice(0, 63);
+  return (slug || 'shipwrkrs-worker').slice(0, AUTO_SCRIPT_NAME_MAX);
 }
 
 function toLabel(name: string) {

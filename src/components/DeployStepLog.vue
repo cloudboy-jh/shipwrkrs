@@ -4,12 +4,17 @@
       <div v-if="phase === 'success'" class="success-content">
         <div class="success-head">
           <div class="check-circle"><CheckCircle2 :size="24" aria-hidden="true" /></div>
-          <p class="success-title">Worker is live</p>
+          <p class="success-title">Worker deployed</p>
         </div>
-        <a class="success-url" :href="deployedUrl" target="_blank" rel="noreferrer">
-          <span class="url-text">{{ deployedUrl }}</span>
+        <a class="success-url" :href="dashboardUrl" target="_blank" rel="noreferrer">
+          <span class="url-text">Open in Cloudflare Dashboard</span>
           <ExternalLink :size="16" class="url-icon" aria-hidden="true" />
         </a>
+        <p class="domain-help">Manage Domains & Routes and activate workers.dev/custom domain if it shows inactive.</p>
+        <p v-if="liveUrl" class="live-url-row">
+          <span>Live URL</span>
+          <a :href="liveUrl" target="_blank" rel="noreferrer">{{ liveUrl }}</a>
+        </p>
         <button class="deploy-another-link" type="button" @click="$emit('deployAnother')">Deploy another →</button>
       </div>
     </Transition>
@@ -66,7 +71,8 @@ const props = defineProps<{
   steps: Array<{ key: string; label: string; status: StepState; note?: string }>;
   events: Array<{ id: number; time: string; text: string }>;
   phase: Phase;
-  deployedUrl: string;
+  dashboardUrl: string;
+  liveUrl?: string | null;
 }>();
 
 defineEmits<{
@@ -171,6 +177,39 @@ function stateText(state: StepState) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.domain-help {
+  text-align: center;
+  max-width: 680px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tm);
+}
+
+.live-url-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tm);
+}
+
+.live-url-row a {
+  color: var(--t2);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-url-row a:hover {
+  color: var(--tx);
 }
 
 .url-icon {
