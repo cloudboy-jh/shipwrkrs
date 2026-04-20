@@ -13,16 +13,6 @@
         <p class="progress-meta">{{ progress }}% complete</p>
       </div>
 
-      <div class="prompt-block">
-        <div class="thinking-wrap">
-          <div class="thinking-bars" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-      </div>
-
       <p class="error-text" v-if="errorText">{{ errorText }}</p>
 
       <button class="btn-ghost" v-if="errorText" @click="goBack">Back to describe</button>
@@ -189,48 +179,12 @@ async function goBack() {
   text-align: right;
 }
 
-.prompt-block {
-  width: 100%;
-}
-
-.thinking-wrap {
-  min-height: 180px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.thinking-bars {
-  display: flex;
-  align-items: end;
-  gap: 6px;
-  height: 16px;
-}
-
-.thinking-bars span {
-  width: 6px;
-  background: var(--o);
-  border-radius: 999px;
-  animation: bars 900ms ease-in-out infinite;
-}
-
-.thinking-bars span:nth-child(1) { animation-delay: 0ms; }
-.thinking-bars span:nth-child(2) { animation-delay: 120ms; }
-.thinking-bars span:nth-child(3) { animation-delay: 240ms; }
-
 .error-text {
   text-align: center;
   color: var(--er);
   font-family: var(--mono);
   font-size: 13px;
   font-weight: 600;
-}
-
-@keyframes bars {
-  0%, 100% { height: 6px; opacity: 0.5; }
-  50% { height: 16px; opacity: 1; }
 }
 
 @media (max-width: 600px) {

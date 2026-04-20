@@ -77,7 +77,8 @@ onMounted(() => {
         }),
         EditorView.theme({
           '&': {
-            minHeight: 'var(--editor-min-height)',
+            height: 'var(--editor-height)',
+            maxHeight: 'var(--editor-height)',
             borderRadius: '12px',
             overflow: 'hidden',
             backgroundColor: 'var(--sf)',
@@ -87,6 +88,8 @@ onMounted(() => {
             lineHeight: '1.55',
             paddingRight: '22px',
             paddingBottom: '44px',
+            height: '100%',
+            overflow: 'auto',
           },
           '.cm-content': {
             padding: '12px 22px 12px 0',
@@ -144,7 +147,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .code-editor-shell {
-  --editor-min-height: 420px;
+  --editor-height: min(62vh, 760px);
   border: 1px solid var(--bd);
   border-radius: 14px;
   overflow: hidden;
@@ -154,7 +157,7 @@ onBeforeUnmount(() => {
 }
 
 .code-editor-shell.expanded {
-  --editor-min-height: min(52vh, 620px);
+  --editor-height: min(78vh, 900px);
   width: max(100%, min(66vw, calc(100vw - 48px)));
 }
 
@@ -195,7 +198,8 @@ onBeforeUnmount(() => {
 }
 
 .code-editor {
-  min-height: var(--editor-min-height);
+  height: var(--editor-height);
+  max-height: var(--editor-height);
 }
 
 .expand-btn {
