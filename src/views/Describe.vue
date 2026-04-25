@@ -8,6 +8,8 @@
                 </div>
             </Transition>
 
+            <p class="input-helper">Be specific about routes, auth, external APIs, and expected response shape.</p>
+
             <div :class="['prompt-block', { 'is-expanded': isExpanded }]">
                 <div class="prompt-inner">
                     <textarea
@@ -43,6 +45,7 @@
                         <span class="meta-text">{{
                             tier === "free" ? "free" : "premium"
                         }}</span>
+                        <span class="meta-text meta-count">{{ description.length }} / 3000</span>
                         <button
                             class="icon-btn"
                             title="Worker examples"
@@ -217,7 +220,7 @@ async function runGenerate() {
     max-width: 580px;
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 24px;
 }
 
 .hero {
@@ -246,6 +249,15 @@ async function runGenerate() {
     margin-top: 10px;
 }
 
+.input-helper {
+    margin-top: -14px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--t2);
+}
+
 .hero-fade-enter-active,
 .hero-fade-leave-active {
     transition:
@@ -267,7 +279,7 @@ async function runGenerate() {
 
 .prompt-textarea {
     width: 100%;
-    min-height: 120px;
+    min-height: 140px;
     background: transparent;
     border: none;
     color: var(--tx);
@@ -365,6 +377,10 @@ async function runGenerate() {
     color: var(--tm);
 }
 
+.meta-count {
+    color: var(--t2);
+}
+
 .icon-btn {
     width: 32px;
     height: 32px;
@@ -376,6 +392,12 @@ async function runGenerate() {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition: 120ms ease;
+}
+
+.icon-btn:hover {
+    border-color: var(--o);
+    color: var(--tx);
 }
 
 .btn-primary {
@@ -453,6 +475,11 @@ async function runGenerate() {
     .toolbar {
         flex-wrap: wrap;
         gap: 10px;
+    }
+
+    .toolbar-left {
+        width: 100%;
+        justify-content: space-between;
     }
     .page-bottom-links {
         width: calc(100vw - 24px);

@@ -301,7 +301,7 @@ export async function cloudflarePutSecret(
 }
 
 export function makeMockWorkerCode(description: string) {
-  return `// ${description}\nexport default {\n  async fetch(request, env) {\n    const url = new URL(request.url);\n    const webhook = env.DISCORD_WEBHOOK_URL;\n    if (url.pathname === '/health') return new Response('ok');\n    return Response.json({\n      ok: true,\n      message: 'Mock generated worker',\n      description: ${JSON.stringify(description)},\n      hasWebhookSecret: Boolean(webhook),\n      timestamp: new Date().toISOString(),\n    });\n  },\n};`;
+  return `// ${description}\nimport { Hono } from 'hono';\n\nconst app = new Hono();\n\napp.get('/health', (c) => c.text('ok'));\n\napp.get('*', (c) => {\n  const webhook = c.env.DISCORD_WEBHOOK_URL;\n  return c.json({\n    ok: true,\n    message: 'Mock generated worker',\n    description: ${JSON.stringify(description)},\n    hasWebhookSecret: Boolean(webhook),\n    timestamp: new Date().toISOString(),\n  });\n});\n\nexport default app;`;
 }
 
 export async function logDeploy(
@@ -331,7 +331,9 @@ Given a user's description, generate a complete, deployable Cloudflare Worker.
 
 Rules:
 - Output ONLY the Worker code, no explanation
-- Use ES modules format (export default { async fetch(request, env, ctx) { ... } })
+- Prefer Hono for server-side routing and middleware in generated workers
+- Use ES modules format and export a deployable worker entrypoint (for Hono, export default app)
+- Keep generated code concise and avoid giant monolithic handlers
 - Handle CORS if the worker serves an API
 - Include appropriate error handling
 - Use Web Standards APIs (fetch, Request, Response, URL, Headers)

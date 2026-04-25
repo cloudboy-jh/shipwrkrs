@@ -9,7 +9,7 @@
 
       <p class="loading" v-if="loading">Loading deploy history...</p>
 
-      <div class="history-list" v-else>
+      <div class="history-list" v-else-if="history.length > 0">
         <article class="prompt-block" v-for="item in history" :key="item.id">
           <div class="prompt-inner">
             <div class="head-row">
@@ -32,6 +32,13 @@
             </details>
           </div>
         </article>
+      </div>
+
+      <div v-else class="prompt-block empty-state">
+        <div class="prompt-inner">
+          <p class="empty-title">No deploys yet</p>
+          <p class="empty-copy">Generate and deploy your first Worker to populate history.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -114,6 +121,26 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.empty-state .prompt-inner {
+  text-align: center;
+  padding: 22px;
+}
+
+.empty-title {
+  font-family: var(--sans);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.empty-copy {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tm);
 }
 
 .prompt-inner {

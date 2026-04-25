@@ -6,6 +6,8 @@
         <p>{{ currentLine }}</p>
       </div>
 
+      <p class="status-chip">Model pipeline running...</p>
+
       <div class="progress-wrap" role="status" aria-live="polite" aria-label="Code generation progress">
         <div class="progress-track" aria-hidden="true">
           <span class="progress-fill" :style="{ width: `${progress}%` }"></span>
@@ -147,11 +149,23 @@ async function goBack() {
   color: var(--tm);
 }
 
+.status-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t2);
+  border: 1px solid var(--bd);
+  background: color-mix(in srgb, var(--el), transparent 40%);
+  border-radius: 999px;
+  padding: 6px 10px;
+  margin-top: -8px;
+}
+
 .progress-wrap {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
 }
 
 .progress-track {

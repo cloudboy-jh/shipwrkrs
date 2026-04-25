@@ -36,7 +36,20 @@ html, body, #app {
   color: var(--tx);
   font-family: var(--sans);
   font-weight: 500;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 10% -10%, color-mix(in srgb, var(--o), transparent 94%) 0, transparent 45%),
+    radial-gradient(circle at 90% -18%, color-mix(in srgb, var(--o), transparent 96%) 0, transparent 40%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--o), transparent 68%);
+  color: var(--tx);
 }
 
 html[data-theme='dark'] {
@@ -147,14 +160,14 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 28px 24px;
 }
 
 .page-top {
   min-height: calc(100vh - var(--topbar-h));
   display: flex;
   justify-content: center;
-  padding: 24px;
+  padding: 28px 24px;
 }
 
 .prompt-block {
@@ -163,6 +176,7 @@ a { color: inherit; }
   border-radius: 16px;
   overflow: hidden;
   position: relative;
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--bg), transparent 92%);
 }
 
 .prompt-block::before {
@@ -182,7 +196,7 @@ a { color: inherit; }
   justify-content: space-between;
   padding: 12px 20px;
   border-top: 1px solid var(--bd);
-  background: color-mix(in srgb, var(--tx), transparent 99%);
+  background: color-mix(in srgb, var(--tx), transparent 98%);
 }
 
 .btn-primary {
@@ -211,6 +225,11 @@ a { color: inherit; }
   pointer-events: none;
 }
 
+.btn-primary:active,
+.btn-ghost:active {
+  transform: translateY(0);
+}
+
 .btn-ghost {
   height: 40px;
   padding: 0 20px;
@@ -228,4 +247,13 @@ a { color: inherit; }
 .btn-ghost:hover {
   color: var(--tx);
   border-color: var(--t2);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--o), #fff 12%);
+  outline-offset: 2px;
 }

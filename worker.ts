@@ -1,4 +1,5 @@
 import type { Env as ApiEnv } from './functions/api/_lib';
+import { Hono } from 'hono';
 import { onRequestGet as authCallbackGet } from './functions/api/auth/callback';
 import { onRequestGet as authLoginGet } from './functions/api/auth/login';
 import { onRequestGet as authMeGet } from './functions/api/auth/me';
@@ -23,18 +24,7 @@ type WorkerEnv = ApiEnv & {
   };
 };
 
-const routes: Record<string, Partial<Record<string, Handler>>> = {
-  '/api/auth/login': { GET: authLoginGet as Handler },
-  '/api/auth/callback': { GET: authCallbackGet as Handler },
-  '/api/auth/me': { GET: authMeGet as Handler },
-  '/api/auth/mock-login': { GET: authMockLoginGet as Handler },
-  '/api/auth/logout': { POST: authLogoutPost as Handler },
-  '/api/auth/token': { PUT: authTokenPut as Handler },
-  '/api/generate': { POST: generatePost as Handler },
-  '/api/deploy': { POST: deployPost as Handler },
-  '/api/history': { GET: historyGet as Handler },
-  '/api/limits': { GET: limitsGet as Handler },
-};
+const app = new Hono<{ Bindings: WorkerEnv }>();
 
 function jsonError(message: string, status: number, headers?: HeadersInit) {
   return new Response(JSON.stringify({ error: message }), {
@@ -57,33 +47,36 @@ function withNoStore(response: Response) {
   });
 }
 
+function asHonoHandler(handler: Handler) {
+  return async (c: { req: { raw: Request }; env: WorkerEnv }) => {
+    const response = await handler({ request: c.req.raw, env: c.env });
+    return withNoStore(response);
+  };
+}
+
+app.onError((error, c) => {
+  const path = c.req.path.length > 1 ? c.req.path.replace(/\/+$/, '') : c.req.path;
+  const message = error instanceof Error ? error.message : 'Internal server error';
+  console.error(`[api] ${c.req.method} ${path} -> 500: ${message}`);
+  return withNoStore(jsonError(message, 500));
+});
+
+app.get('/api/auth/login', asHonoHandler(authLoginGet as Handler));
+app.get('/api/auth/callback', asHonoHandler(authCallbackGet as Handler));
+app.get('/api/auth/me', asHonoHandler(authMeGet as Handler));
+app.get('/api/auth/mock-login', asHonoHandler(authMockLoginGet as Handler));
+app.post('/api/auth/logout', asHonoHandler(authLogoutPost as Handler));
+app.put('/api/auth/token', asHonoHandler(authTokenPut as Handler));
+app.post('/api/generate', asHonoHandler(generatePost as Handler));
+app.post('/api/deploy', asHonoHandler(deployPost as Handler));
+app.get('/api/history', asHonoHandler(historyGet as Handler));
+app.get('/api/limits', asHonoHandler(limitsGet as Handler));
+
+app.all('/api/*', (c) => withNoStore(jsonError('Not found', 404)));
+app.all('*', (c) => c.env.ASSETS.fetch(c.req.raw));
+
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
-    const url = new URL(request.url);
-    const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
-
-    if (path.startsWith('/api/')) {
-      const methodHandlers = routes[path];
-      if (!methodHandlers) {
-        return withNoStore(jsonError('Not found', 404));
-      }
-
-      const handler = methodHandlers[request.method as keyof typeof methodHandlers];
-      if (!handler) {
-        const allow = Object.keys(methodHandlers).join(', ');
-        return withNoStore(jsonError('Method not allowed', 405, { Allow: allow }));
-      }
-
-      try {
-        const response = await handler({ request, env });
-        return withNoStore(response);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Internal server error';
-        console.error(`[api] ${request.method} ${path} -> 500: ${message}`);
-        return withNoStore(jsonError(message, 500));
-      }
-    }
-
-    return env.ASSETS.fetch(request);
+    return app.fetch(request, env);
   },
 };

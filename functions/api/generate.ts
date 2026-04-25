@@ -78,7 +78,9 @@ function normalizeGeneratedCode(raw: string): { code: string; wrapperRemoved: bo
 
 function validateWorkerCode(code: string): GenerationIssue[] {
   const issues: GenerationIssue[] = [];
-  if (!/export\s+default\s*\{/.test(code) || !/fetch\s*\(/.test(code)) {
+  const hasClassicWorker = /export\s+default\s*\{/.test(code) && /fetch\s*\(/.test(code);
+  const hasHonoWorker = /new\s+Hono\s*\(/.test(code) && /export\s+default\s+[A-Za-z_$][\w$]*/.test(code);
+  if (!hasClassicWorker && !hasHonoWorker) {
     issues.push('invalid_worker_shape');
   }
 
@@ -92,7 +94,9 @@ function validateWorkerCode(code: string): GenerationIssue[] {
 }
 
 function issueLabel(issue: GenerationIssue): string {
-  if (issue === 'invalid_worker_shape') return 'Code must export default Worker with fetch handler.';
+  if (issue === 'invalid_worker_shape') {
+    return 'Code must export a valid Cloudflare Worker (classic fetch handler or Hono app export).';
+  }
   if (issue === 'non_js_content_detected') return 'Output contains non-JavaScript content.';
   if (issue === 'non_code_wrapper_removed') return 'Removed markdown/non-code wrapper from model output.';
   return 'Applied automatic code repair pass.';

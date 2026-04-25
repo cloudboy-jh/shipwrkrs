@@ -196,7 +196,7 @@ async function copyAccountId() {
   align-items: center;
   justify-content: space-between;
   padding: 0 34px;
-  background: color-mix(in srgb, var(--bg), transparent 15%);
+  background: color-mix(in srgb, var(--bg), transparent 10%);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid color-mix(in srgb, var(--tx), transparent 94%);
 }
@@ -279,6 +279,10 @@ async function copyAccountId() {
 }
 
 .header-link:hover {
+  color: var(--tx);
+}
+
+.header-link.router-link-active {
   color: var(--tx);
 }
 

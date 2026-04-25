@@ -3,42 +3,46 @@
     <div class="page-content">
       <div class="hero">
         <h1>Connect your <em>Cloudflare</em> account</h1>
+        <p class="hero-sub">Paste a scoped API token to enable generation and one-click deploys.</p>
       </div>
 
-      <form class="token-form" @submit.prevent="connectToken">
-        <label class="field-label" for="cf-token">Cloudflare API token</label>
-        <input
-          id="cf-token"
-          v-model.trim="token"
-          class="text-input"
-          type="password"
-          autocomplete="off"
-          spellcheck="false"
-          placeholder="Paste Cloudflare API token"
-          required
-        />
-
-        <label class="field-label" for="cf-account">Cloudflare Account ID</label>
-        <input
-          id="cf-account"
-          v-model.trim="accountId"
-          class="text-input"
-          type="text"
-          autocomplete="off"
-          spellcheck="false"
-          placeholder="Paste account id"
-          required
-        />
-        <button class="btn-primary full signin-btn" :disabled="loading || !tokenAuthEnabled">
-          <img
-            class="signin-icon"
-            :src="cloudflareIconSrc"
-            alt=""
-            aria-hidden="true"
+      <div class="prompt-block auth-card">
+        <form class="token-form" @submit.prevent="connectToken">
+          <label class="field-label" for="cf-token">Cloudflare API token</label>
+          <input
+            id="cf-token"
+            v-model.trim="token"
+            class="text-input"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Paste Cloudflare API token"
+            required
           />
-          <span>{{ loading ? 'Connecting…' : 'Connect account' }}</span>
-        </button>
-      </form>
+
+          <label class="field-label" for="cf-account">Cloudflare Account ID</label>
+          <input
+            id="cf-account"
+            v-model.trim="accountId"
+            class="text-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Paste account id"
+            required
+          />
+          <p class="meta-note">We encrypt your token at rest and never show it back in plain text.</p>
+          <button class="btn-primary full signin-btn" :disabled="loading || !tokenAuthEnabled">
+            <img
+              class="signin-icon"
+              :src="cloudflareIconSrc"
+              alt=""
+              aria-hidden="true"
+            />
+            <span>{{ loading ? 'Connecting…' : 'Connect account' }}</span>
+          </button>
+        </form>
+      </div>
 
       <p class="meta-line">
         Need a token?
@@ -150,12 +154,12 @@ async function connectToken() {
   max-width: 480px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .hero {
   text-align: center;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 
@@ -168,6 +172,18 @@ async function connectToken() {
   line-height: 1.1;
 }
 
+.hero-sub {
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tm);
+}
+
+.auth-card {
+  padding: 16px;
+}
+
 .hero h1 em {
   font-style: normal;
   color: var(--o);
@@ -176,7 +192,7 @@ async function connectToken() {
 .token-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 11px;
 }
 
 .field-label {
@@ -201,11 +217,13 @@ async function connectToken() {
   font-family: var(--mono);
   font-size: 13px;
   font-weight: 600;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
 .text-input:focus {
   outline: none;
   border-color: var(--o);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--o), transparent 84%);
 }
 
 
@@ -257,6 +275,14 @@ async function connectToken() {
   text-align: center;
   font-family: var(--mono);
   font-size: 12px;
+  font-weight: 600;
+  color: var(--tm);
+}
+
+.meta-note {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 11px;
   font-weight: 600;
   color: var(--tm);
 }
